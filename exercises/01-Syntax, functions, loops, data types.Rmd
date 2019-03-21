@@ -1,0 +1,33 @@
+---
+title: "01-Syntax, base, functions, loops and data types"
+author: "Adi Sarid / adi@sarid-ins.co.il"
+date: "21 3 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Goals of this exercise
+
+In this exercise you will build a function which computes the Fibonacci series (0, 1, 1, 2, 3, 5, 8, 13, 21,...)
+
+WARNING:
+This is a **relatively complex** exercise and it's not directly related to data analysis. The reasone I am giving you this exercise is that it is a great exercise to reherse all the elements we were discussing: 
+   
+   1. Functions and recursion (a function calling itself) 
+   2. Base-r loops
+   3. Conditionals (`if...else if...else`).
+   
+```
+fibonnachi <- function(n){
+  if (n == 0) {
+    return(0)
+  } else if (n == 1) {
+    return(1)
+  } else {
+    return(fibonnachi(n-1) + fibonnachi(n-2))
+  }
+}
+```
