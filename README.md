@@ -1,4 +1,4 @@
-![](http://www.sarid-ins.com/files/site_image/logo_eng_2.png)
+﻿![](http://www.sarid-ins.com/files/site_image/logo_eng_2.png)
 
 # R corporate training course
 
@@ -41,8 +41,6 @@ The repository contains presentations (slides) in pptx and pdf formats, exercise
 |   ├── pdf
 ├── exercises
 |   ├── answers
-|   |   ├── pdf
-|   |   ├── rmarkdown
 ├── datasets
 ```
 
