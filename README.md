@@ -10,6 +10,12 @@ See more at [Adi's blog](https://adisarid.github.io), and at [Sarid Research Ins
 Get in touch: Twitter @SaridResearch, [LinkedIn](https://www.linkedin.com/in/adi-sarid/)
 The course was built in cooperation with [Naya College](https://www.naya-college.co.il/).
 
+## License
+
+The course as a whole is licensed under [Creative Commons Attribution-NonCommercial-ShareAlike 4.0](http://creativecommons.org/licenses/by-nc-sa/4.0/) 
+
+![](https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png)
+
 # Syllabus
 
 The course covers the following topics:
