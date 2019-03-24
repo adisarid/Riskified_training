@@ -53,7 +53,7 @@ b > a
 ```
 
 Also note the use of logicals:
-Please explain what each of the following operators: `& | ! !=`, you can use the following (and modify it in any way):
+Please explain what each of the following operators do: `& | ! !=`, you can use the following (and modify it in any way):
 
 ```
 # TRUE FALSE and the likes
@@ -65,7 +65,7 @@ FALSE != TRUE
 FALSE == FALSE
 ```
 
-Try the following code. Bonus points if you can explain whats wrong with it (and why that is).
+Try the following code. Bonus points if you can explain what's wrong with it (and why that is).
 
 ```{r two is not two}
 
@@ -170,24 +170,25 @@ count(???, cyl)
 Later on, we will learn some more convinient ways to answer such questions.
 
 
-## Functions and iteratons - intermediate exercise
+## Functions and iterations - intermediate exercise
 
 We will discuss some base-R iterations, however, **in real situations you should do all in your power to avoid base-r loops!**.
 
 In the following exercise you will build a function which computes the Fibonacci series (0, 1, 1, 2, 3, 5, 8, 13, 21,...), and a loop which does the same. You will compare their runtime using `bench::mark()`.
 
 WARNING:
-This is a **relatively complex** exercise if you're not fluent in programming, and it's not directly related to data analysis. The reasone I am giving you this exercise is that it is a great exercise to reherse elements we were discussing, in one single exercise.
+This might feel like a **relatively complex** exercise if you're not fluent in programming, and it's not directly related to data analysis. The reasone I am giving you this exercise is that it is a great exercise to reherse elements we were discussing, in one single exercise.
    
-   1. Functions and recursion (a function calling itself) 
+   1. Functions and the concept of recursion (a function calling itself)
    2. Base-r loops
    3. Conditionals (`if...else if...else`).
 
 First, if you don't know what the Fibonacci series is, go to [wikipedia, Fibonacci number](https://en.wikipedia.org/wiki/Fibonacci_number) and read about it (just the intro, should suffice).
 
-
 Complete the following function so that a call to the function will generate the n^th^ Fibonnacci number. Replace the `???`.
 Rows which start with the hash sign `#` are comments and will be ignored.
+
+Also, if you never heard the term "recursion" up until today, you might want to start with the second function `fib_loop`, and then think about the first one `fibonnaci`.
 
 ```
 fibonnacci <- function(n){
@@ -199,7 +200,7 @@ fibonnacci <- function(n){
     return(1)
   } else {
     # use recursion to calculate the number
-    return(fibonnacci(n-1) + ???(n-2))
+    return(???)
   }
 }
 
