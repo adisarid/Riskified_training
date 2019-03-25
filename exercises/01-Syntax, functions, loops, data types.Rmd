@@ -228,7 +228,7 @@ Check that your are getting consistent results. Now, compare the two functions u
 
 ```
 install.packages(bench) # if it is not installed
-bench::mark(fibonacci(30), fib_loop(30))
+bench::mark(fibonnacci(30), fib_loop(30))
 ```
 
 Which method is quicker?
