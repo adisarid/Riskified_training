@@ -1,0 +1,37 @@
+---
+title: "Telling stories with charts - visualizations with ggplot2"
+author: "Adi Sarid"
+output: html_document
+---
+
+
+
+# What for and why now?
+
+When we think about the data science workflow, it makes a lot of sense to start our lesson with tidying data or data transformations, however, I chose to start with visualizations. Why is that?
+
+I'm adopting the approach of the "R for Data Science book", which talks about visualizations in one of its early chapters (even before data transformations), because charts give a lot of motivation to our next chapters and also helps us develop a way of thinking.
+
+As you will see, the following exercises will also contain some elements of tidying and transforming data (because sometimes its a necessity towards working on a chart), but we will not put the emphasis there. In a future lesson we will delve deeper into tidying and data transformations.
+
+**Remember:**
+When you do the exercises, if you get stuck, put on a pink sticky note. If I haven't noticed it, call me. If you finished, put up the green one.
+
+
+This class is comprised of a number of exercises over a number of data sets. According to each group's pace, we will cover the following topics (in order):
+
+   * Planning charts according to the ggplot2 philosophy
+   * Basic ggplot2 charts: describing data of various origins and types using charts (factor, numeric, character)
+   * Generating maps
+   * Generating interactive charts:
+      * Why and when should you do that?
+      * Generating interactive charts using `plotly`
+      * Generating interactive charts using `ggvis`, and describe the main differences between ggvis and ggplot2
+   * Generate parametrized RMarkdown files, including adapting charts, with the click of a button (not only visualizations related, but seemed like the right place to talk about it)
+   * If time permits we might also reach:
+      * Make your charts branded
+      * Generating animated charts using `gganimate`
+      * Interactive maps using leaflet
+      * Understanding what is a shiny app and what is reactive programming
+
+Along the exercise we will have "checkpoints", if you reached a checkpoint put on your green sticky note. You can take a break, dring a soda, or continue to the next exercise. Once I see a lot of green sticky notes we will stop and discuss the exercise up to the checkpoint.
