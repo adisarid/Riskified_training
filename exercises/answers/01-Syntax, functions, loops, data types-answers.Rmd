@@ -3,8 +3,8 @@ title: "01-Syntax, base, functions, loops and data types"
 author: "Adi Sarid / adi@sarid-ins.co.il"
 date: "March 2019"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -250,19 +250,33 @@ fibonacci <- function(n){
   }
 }
 
-fib_loop <- function(n){
+fib_loop <- function(n, print_series = FALSE){
+  if (round(n) != n){
+    stop("Not an integer!")
+  }
+  if (n == 0){
+    return(0)
+  } else if (n == 1){
+    return(1)
+  }
   f_n_minus_1 <- 1
   f_n_minus_2 <- 0
-  for (i in 1:n){
+  for (i in 1:(n-1)){
     f_n_new <- f_n_minus_1 + f_n_minus_2
-    f_n_minus_1 <- f_n_minus_2
-    f_n_minus_2 <- f_n_new
+    if (print_series){
+      cat(
+        paste0("f_n_minus_1=", f_n_minus_1, 
+               "  f_n_minus_2=", f_n_minus_2, 
+               " f_new=", f_n_new, "\n"))
+    }
+    f_n_minus_2 <- f_n_minus_1
+    f_n_minus_1 <- f_n_new
   }
   f_n_new
 }
 
 fibonacci(30)
-fib_loop(30)
+fib_loop(30, print_series = TRUE)
 
 bench::mark(fibonacci(30), fib_loop(30))
 
