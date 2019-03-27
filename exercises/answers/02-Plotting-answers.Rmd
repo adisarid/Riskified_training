@@ -1,7 +1,8 @@
 ---
 title: "Telling stories with charts - visualizations with ggplot2"
 author: "Adi Sarid"
-output: html_document
+output:
+  html_document: default
 ---
 
 # What for and why now?
@@ -201,9 +202,9 @@ rating_reviews_cont_rate <-
 rating_reviews_cont_rate
 ```
 
-**Checkpoint Alpha: If you reached here you have completed the first exercise. Hurray!.**
+**Checkpoint 1: If you reached here you have completed the first exercise. Hurray!.**
 
-## A very useful trick - automated parameterized reports (with RMarkdown)
+## Exercise 1.5: A very useful trick - automated parameterized reports (with RMarkdown)
 
 This trick is not directly related to plotting, but it seems appropriete to show it now, after we have done a few ggplots and now want to automate our process. 
 
@@ -217,7 +218,7 @@ Now, do the same but instead of clicking on knit, open the knit menu (small arro
 
 To automate the knitting process you can use the following command (try to run it for category "BUSINESS" with app size > 5):
 
-```{r knit the business category}
+```
 rmarkdown::render(input = "../02-Automated-report-sample.Rmd",
                   params = list(app_category = "BUSINESS", app_size = 5),
                   output_file = "tmp_output.html")
@@ -226,3 +227,262 @@ rmarkdown::render(input = "../02-Automated-report-sample.Rmd",
 When we will learn the `purrr` package, you will see how you can create a script that will render all the categories there are with just a few lines of code.
 
 We now go back to flow of plotting and discuss how ggplot2 protects you against shooting yourself in the leg.
+
+**Checkpoint 2: If you reached here you have completed the 1.5 exercise. Awesome.**
+
+   a. Stick your green sticky note. 
+   b. You can take a break and/or continue with the exercises. 
+   c. When I see enough green sticky notes around we will solve the last exercise together.
+
+# Mini exercise (on power point presentation)
+
+## How would you (1)
+
+```{r bar plot with distributions}
+
+fruit_raw <- tribble(
+   ~Month, ~fruit, ~fruit_sales,
+   1, "Bananna", 100,
+   1, "Apple", 120,
+   1, "Oranges", 105,
+   2, "Bananna", 90,
+   2, "Apple", 78,
+   2, "Oranges", 33,
+   3, "Bananna", 217,
+   3, "Apple", 42,
+   3, "Oranges", 62,
+   4, "Bananna", 120,
+   4, "Apple", 120,
+   4, "Oranges", 120,
+   5, "Bananna", 14,
+   5, "Apple", 120,
+   5, "Oranges", 200,
+   6, "Bananna", 105,
+   6, "Apple", 125,
+   6, "Oranges", 130
+)
+
+fruit_transformed <- fruit_raw %>% 
+   group_by(Month) %>% 
+   mutate(total_sales = sum(fruit_sales)) %>% 
+   mutate(fruit_percent = fruit_sales/total_sales) %>% 
+   select(-fruit_sales)
+
+fruit_ready <- fruit_raw %>% 
+   left_join(fruit_transformed) %>% 
+   mutate(fruit_label = paste0(round(fruit_percent*100), "%"))
+
+fruit_total_overall <- fruit_raw %>% 
+   group_by(Month) %>% 
+   summarize(total_sales = sum(fruit_sales))
+
+ggplot(fruit_ready, aes(x = Month, y = fruit_sales, fill = fruit)) + 
+   geom_bar(position = "stack", stat = "identity") + 
+   geom_label(aes(label = fruit_label), position = position_stack(), show.legend = F) + 
+   geom_text(data = fruit_total_overall, inherit.aes = FALSE, aes(label = total_sales, y = total_sales + 50, x = Month))
+
+```
+
+## How would you (2)
+
+```{r using tiles}
+library(lubridate)
+tsla0 <- read_csv("https://raw.githubusercontent.com/adisarid/Riskified_training/master/datasets/TSLA.csv") %>% 
+   mutate(stock_month = month(Date),
+          stock_day = day(Date),
+          stock_year = year(Date)) %>% 
+   group_by(stock_year, stock_month) %>% 
+   mutate(position = seq_along(Date)) %>% 
+   filter(position == 1) %>% 
+   select(-position)
+
+ggplot(tsla0, aes(x = stock_year, y = stock_month, fill = Close)) + 
+   geom_tile() + 
+   scale_fill_continuous(type = "viridis") + 
+   coord_equal() + 
+   scale_y_continuous(breaks = 1:12)
+
+
+
+```
+
+
+# Exercise 2: Some graphing pifalls and how ggplot2 protects you against them
+
+## The double y-axis paradigm 
+
+Double y-axis can be useful sometimes but can also be misleading. `ggplot2` makes it "hard" to generate a double y-axis, with a sound philosophy behind. See [Hadley's response](https://stackoverflow.com/questions/3099219/plot-with-2-y-axes-one-y-axis-on-the-left-and-another-y-axis-on-the-right):
+
+   It's not possible in `ggplot2` because I believe plots with separate y scales (not y-scales that are transofrmations of each other) are fundamentally flawed...
+   
+Let's try to analyze this. 
+
+**Question 1:** In the following example, what is the relationship between Bannana prices and Computer prices? what is the meaning of their intersection around the second month? **We are manipulating the transformation to create whatever we want, but the intersection has no real meaning.**
+
+```{r double y-axis}
+
+sales <- tribble(
+   ~Month, ~Bannana, ~Computer,
+   1, 5.3, 3000,
+   2, 5.5, 2950,
+   3, 6, 2500,
+   4, 5.9, 2600,
+   5, 5.9, 2450,
+   6, 5.6, 2320,
+   7, 5.7, 2400
+) %>% 
+   gather(item, price, -Month) %>% 
+   mutate(price = ifelse(item == "Computer", price/3000*6, price))
+
+ggplot(sales, aes(x = Month, y = price, color = item)) + 
+   geom_line(size = 2) + 
+   scale_y_continuous("Bannana prices", sec.axis = sec_axis(~ .*3000/6, name = "Computer prices")) + 
+   theme_minimal() + 
+   theme(legend.position = "top") + 
+   ggtitle("A misleading double y-axis")
+```
+
+**Question 2:** Now examine the following chart. Non of the numbers or values changed, just the transformation that positions the computer's axis. The two lines seem to coinside more, but what does that mean? **Absolutely nothing**
+
+```{r second alternative}
+sales <- tribble(
+   ~Month, ~Bannana, ~Computer,
+   1, 5.3, 3000,
+   2, 5.5, 2950,
+   3, 6, 2500,
+   4, 5.9, 2600,
+   5, 5.9, 2450,
+   6, 5.6, 2320,
+   7, 5.7, 2400
+) %>% 
+   gather(item, price, -Month) %>% 
+   mutate(price = ifelse(item == "Computer", price/2500*6, price))
+
+ggplot(sales, aes(x = Month, y = price, color = item)) + 
+   geom_line(size = 2) + 
+   scale_y_continuous("Bannana prices", sec.axis = sec_axis(~ .*3000/6, name = "Computer prices")) + 
+   theme_minimal() + 
+   theme(legend.position = "top") + 
+   ggtitle("A misleading double y-axis: #2")
+```
+
+**Question 3:** There is one case in which a double y-axis is OK (and may even contribute). 
+
+   1. When would using a dual y-axis be beneficial? **When we are showing a transformation of the original axis, unrelated to the data itself. e.g., currency, Metric/US, Celsius/fahrenheit, etc.**
+   2. Download (or make up) relevant data and illustrate it via a `ggplot2` chart with the `sec.axis` function/argument.
+
+```{r tesla stock}
+tsla <- read_csv("https://raw.githubusercontent.com/adisarid/Riskified_training/master/datasets/TSLA.csv")
+
+ggplot(tsla, aes(Date, Close)) + 
+   geom_line() + 
+   scale_y_continuous("TSLA Closing price", sec.axis = sec_axis(trans = ~./144.699997, "Normalized to 2013-11-11")) + 
+   ggtitle("Tesla closing price over the last 5 years.")
+
+```
+
+## Pie charts
+
+The problem with pie charts is that they require much more effort. They render one-dimentional data on a two dimentional plane, so in fact pie charts **do not exist in `ggplot2`!** (there are some blog posts talking about how to make a pie chart with `coord_polar`, and they are really long).
+
+Base-r though has pie charts. DO NOT TRY THIS AT HOME:
+
+```{r pie versus bar}
+fruits <- tribble(
+   ~fruit, ~portion,
+   "Bannanas", 0.33,
+   "Apples", 0.29,
+   "Strawberries", 0.19,
+   "Pares", 0.1,
+   "Blueberries", 0.07,
+   "Oranges", 0.02
+)
+
+# DO NOT TRY THIS AT HOME
+pie(fruits$portion, labels = fruits$fruit)
+```
+
+**Question 1:** How would you plot the `fruits` data in `ggplot2`'s ecosystem? (think bars) and do that.
+
+```{r fruits in bars}
+ggplot(fruits, aes(x = fct_inorder(fruit), y = portion, fill = fct_inorder(fruit))) + 
+   geom_col(color = "black") + 
+   scale_fill_brewer(palette = "Set2") + 
+   scale_y_continuous(labels = scales::percent_format(accuracy = 1)) + 
+   xlab("Fruit") + 
+   guides(fill = guide_legend("Fruit"))
+
+# the "fill" is just for fun. It is redundent.
+```
+
+
+
+# Exercise 4: The Telco customer churn
+
+This exercise is based on a file downloaded from the IBM website (it's probably synthetic data, but it is still interesting to examine). The original file is available [here](https://www.ibm.com/communities/analytics/watson-analytics-blog/guide-to-sample-datasets/), but you can also load it from our github repo.
+
+```{r read telco}
+telco_churn <- read_csv("https://raw.githubusercontent.com/adisarid/Riskified_training/master/datasets/WA_Fn-UseC_-Telco-Customer-Churn.csv")
+
+glimpse(telco_churn)
+```
+
+**Question 1:** Using a scatter plot (`geom_point`), examine the distribution of TotalCharges as a function of tenure.
+
+   1. What can you deduce from the way the points are scattered?
+   2. Use facets to split the chart by contract, and add smoothing (`stat_smooth`). What does this tells you?
+
+**Question 2:** Examine the distribution of monthly charges versus churn.
+
+   1. Is there a relationship between the monthly payments and the churn?
+   2. Now, add a chart which examines the monthly charges versus churtn but also separates the the internet service type. What do you deduce now that you see the new chart?
+   
+**Question 3:** Build a chart that shows the number of churning and remaining clients versus the type of services they received. Are you able to explain the phenomena in the last part better?
+
+
+```{r tenure vs monthly charges}
+ggplot(telco_churn, aes(x=tenure, y=TotalCharges)) + geom_point() + stat_smooth()
+ggplot(telco_churn, aes(x=tenure, y=TotalCharges)) + geom_point() + facet_wrap(~ Contract) + stat_smooth()
+ggplot(telco_churn, aes(x=Churn,y=MonthlyCharges)) + geom_boxplot()
+ggplot(telco_churn, aes(x=Churn,y=MonthlyCharges)) + geom_boxplot() + facet_wrap(~InternetService)
+ggplot(telco_churn, aes(x = InternetService, fill=Churn)) + geom_bar(position = "stack")
+
+# The churn is much higher in fiber optics, and the monthly payments of fiber optics are higher.
+# Hence, when we compare the monthly charges vs. churn it looks like you churn when you pay more,
+# but in fact, when we examine the interaction of the internet service type,
+# we see that actually churning customers paid less. The bias was created since we mixed the service types.
+
+telco_churn %>%
+  group_by(InternetService, Churn) %>%
+  summarize(pymnt = mean(MonthlyCharges))
+```
+
+# Exercise 4: Chart branding - themes and scales
+
+In this short exercise you will have to control "themes" and "scales" to generate a Riskified branded chart. We will also add a logo to the charts.
+
+```{r read riskified logo}
+#install.packages("rsvg")
+riskified_logo <- rsvg::rsvg("https://3syq88kbbdj40jbkf2ssy21e-wpengine.netdna-ssl.com/wp-content/themes/riskified/images/logo.svg")
+
+ggplot(mtcars, aes(x = disp, y = mpg)) + 
+   geom_point(aes(size = hp, color = factor(gear))) + 
+   scale_color_manual(values = c("#3dcea7", "#2b997b", "#09684e")) +
+   ggtitle("Miles per galon") + 
+   labs(caption = "eCommerce Revenue Protection @ https://www.riskified.com/") + 
+   theme_bw()
+
+grid::grid.raster(riskified_logo, x = 0.07, y = 0.03, just = c("left", "bottom"), width = unit(0.7, 'inches'))
+```
+
+```{r second chart}
+ggplot(telco_churn, aes(x = InternetService, fill=Churn)) + 
+   geom_bar(position = "stack", color = "black") + 
+   scale_fill_manual(values = c("#3dcea7", "#09684e")) +
+   labs(caption = "eCommerce Revenue Protection @ https://www.riskified.com/") + 
+   ggtitle("Comparing Telco's churn over internet service type") +
+   theme_bw()
+
+grid::grid.raster(riskified_logo, x = 0.07, y = 0.03, just = c("left", "bottom"), width = unit(0.7, 'inches'))
+
+```

@@ -141,14 +141,14 @@ ggplot(XXX, aes(XXX)) +
    1. What happened to the trend you identified earlier?
    2. Compare the EDUCATION category versus TOOLS. What differences do you see and what is their meaning?
 
-**Checkpoint Alpha: If you reached here you have completed the first exercise. Hurray!.**
+**Checkpoint 1: If you reached here you have completed the first exercise. Hurray!.**
 
    a. Stick your green sticky note. 
    b. Come to me and receive your brand new `ggplot2` badge. 
    c. You can take a break and/or continue with the exercises. 
    d. When I see enough green sticky notes around we will solve the last exercise together.
 
-## A very useful trick - automated parameterized reports (with RMarkdown)
+## Exercise 1.5: A very useful trick - automated parameterized reports (with RMarkdown)
 
 This trick is not directly related to plotting, but it seems appropriete to show it now, after we have done a few ggplots and now want to automate our process. 
 
@@ -173,29 +173,175 @@ When we will learn the `purrr` package, you will see how you can create a script
 
 We now go back to flow of plotting and discuss how ggplot2 protects you against shooting yourself in the leg.
 
-# How ggplot2 protects you?
+**Checkpoint 2: If you reached here you have completed the 1.5 exercise. Awesome.**
 
-Some of the following was inspired by this [blog post](https://blog.funnel.io/why-we-dont-use-pie-charts-and-some-tips-on-better-data-visualizations).
+   a. Stick your green sticky note. 
+   b. You can take a break and/or continue with the exercises. 
+   c. When I see enough green sticky notes around we will solve the last exercise together.
 
-Dual y-axis (when to use when not to use), pi charts (when not to use - ever)
+# Exercise 2: Some graphing pifalls and how ggplot2 protects you against them
+
+Some of the following was inspired by this [blog post](https://blog.funnel.io/why-we-dont-use-pie-charts-and-some-tips-on-better-data-visualizations), and by Maor Shoshan which emailed me a couple of requests (**and I encourage all of you to do the same!**).
+
+## The double y-axis paradigm 
+
+Double y-axis can be useful sometimes but can also be misleading. `ggplot2` makes it "hard" to generate a double y-axis, with a sound philosophy behind. See [Hadley's response](https://stackoverflow.com/questions/3099219/plot-with-2-y-axes-one-y-axis-on-the-left-and-another-y-axis-on-the-right):
+
+   It's not possible in `ggplot2` because I believe plots with separate y scales (not y-scales that are transofrmations of each other) are fundamentally flawed...
+   
+Let's try to analyze this. 
+
+**Question 1:** In the following example, what is the relationship between Bannana prices and Computer prices? what is the meaning of their intersection around the second month?
+
+```{r double y-axis}
+
+sales <- tribble(
+   ~Month, ~Bannana, ~Computer,
+   1, 5.3, 3000,
+   2, 5.5, 2950,
+   3, 6, 2500,
+   4, 5.9, 2600,
+   5, 5.9, 2450,
+   6, 5.6, 2320,
+   7, 5.7, 2400
+) %>% 
+   gather(item, price, -Month) %>% 
+   mutate(price = ifelse(item == "Computer", price/3000*6, price))
+
+ggplot(sales, aes(x = Month, y = price, color = item)) + 
+   geom_line(size = 2) + 
+   scale_y_continuous("Bannana prices", sec.axis = sec_axis(~ .*3000/6, name = "Computer prices")) + 
+   theme_minimal() + 
+   theme(legend.position = "top") + 
+   ggtitle("A misleading double y-axis")
+```
+
+**Question 2:** Now examine the following chart. Non of the numbers or values changed, just the transformation that positions the computer's axis. The two lines seem to coinside more, but what does that mean?
+
+```{r second alternative}
+sales <- tribble(
+   ~Month, ~Bannana, ~Computer,
+   1, 5.3, 3000,
+   2, 5.5, 2950,
+   3, 6, 2500,
+   4, 5.9, 2600,
+   5, 5.9, 2450,
+   6, 5.6, 2320,
+   7, 5.7, 2400
+) %>% 
+   gather(item, price, -Month) %>% 
+   mutate(price = ifelse(item == "Computer", price/2500*6, price))
+
+ggplot(sales, aes(x = Month, y = price, color = item)) + 
+   geom_line(size = 2) + 
+   scale_y_continuous("Bannana prices", sec.axis = sec_axis(~ .*3000/6, name = "Computer prices")) + 
+   theme_minimal() + 
+   theme(legend.position = "top") + 
+   ggtitle("A misleading double y-axis: #2")
+```
+
+**Question 3:** There are a few cases in which a double y-axis is OK (and may even contribute).
+
+   1. When would using a dual y-axis be beneficial?
+   2. Download (or make up) relevant data and illustrate it via a `ggplot2` chart with the `sec.axis` function/argument.
+
+## Pie charts
+
+The problem with pie charts is that they require much more effort. They render one-dimentional data on a two dimentional plane, so in fact pie charts **do not exist in `ggplot2`!** (there are some blog posts talking about how to make a pie chart with `coord_polar`, and they are really long).
+
+Base-r though has pie charts. DO NOT TRY THIS AT HOME:
+
+```{r pie versus bar}
+fruits <- tribble(
+   ~fruit, ~portion,
+   "Bannanas", 0.33,
+   "Apples", 0.29,
+   "Strawberries", 0.19,
+   "Pares", 0.1,
+   "Blueberries", 0.07,
+   "Oranges", 0.02
+)
+
+# DO NOT TRY THIS AT HOME
+pie(fruits$portion, labels = fruits$fruit, main = "DO NOT TRY THIS AT HOME!!!")
+```
+
+**Question 1:** How would you plot the `fruits` data in `ggplot2`'s ecosystem? (think bars) and do that.
+
+**Checkpoint 3: If you reached here you have completed exercise 2. Great job!.**
+
+   a. Stick your green sticky note. 
+   b. You can take a break and/or continue with the exercises. 
+   c. When I see enough green sticky notes around we will solve the last exercise together.
+
+# Exercise 3: The Telco customer churn
+
+This exercise is based on a file downloaded from the IBM website (it's probably synthetic data, but it is still interesting to examine). The original file is available [here](https://www.ibm.com/communities/analytics/watson-analytics-blog/guide-to-sample-datasets/), but you can also load it from our github repo.
+
+```{r read telco}
+telco_churn <- read_csv("https://raw.githubusercontent.com/adisarid/Riskified_training/master/datasets/WA_Fn-UseC_-Telco-Customer-Churn.csv")
+
+glimpse(telco_churn)
+```
+
+**Question 1:** Using a scatter plot (`geom_point`), examine the distribution of TotalCharges as a function of tenure.
+
+   1. What can you deduce from the way the points are scattered?
+   2. Use facets to split the chart by contract, and add smoothing (`stat_smooth`). What does this tells you?
+
+**Question 2:** Examine the distribution of monthly charges versus churn.
+
+   1. Is there a relationship between the monthly payments and the churn?
+   2. Now, add a chart which examines the monthly charges versus churtn but also separates the the internet service type. What do you deduce now that you see the new chart?
+   
+**Question 3:** Build a chart that shows the number of churning and remaining clients versus the type of services they received. Are you able to explain the phenomena in the last part better?
 
 
-# Additional topics TBD
+**Checkpoint 4: If you reached here you have completed exercise 3. A-M-A-Z-I-N-G!.**
 
-This class is comprised of a number of exercises over a number of data sets. According to each group's pace, we will cover the following topics (in order):
+   a. Stick your green sticky note. 
+   b. You can take a break and/or continue with the exercises. 
+   c. When I see enough green sticky notes around we will solve the last exercise together.
 
-   * Planning charts according to the ggplot2 philosophy (covered in the pptx presentation)
-   * Basic ggplot2 charts: describing data of various origins and types using charts (factor, numeric, character)
-   * Some quick mini-tasks for tips-and-tricks
-   * Generating maps
-   * Generating interactive charts:
-      * Why and when should you do that?
-      * Generating interactive charts using `plotly`
-      * Generating interactive charts using `ggvis`, and describe the main differences between ggvis and ggplot2
-   * Generate parametrized RMarkdown files, including adapting charts, with the click of a button (not only visualizations related, but seemed like the right place to talk about it)
-   * If time permits we might also reach:
-      * Make your charts branded
-      * Generating animated charts using `gganimate`
-      * Interactive maps using leaflet
-      * Understanding what is a shiny app and what is reactive programming
+# Exercise 4: Chart branding - themes and scales
 
+In this short exercise you will have to control "themes" and "scales" to generate a Riskified branded charts. We will also add a logo to the charts.
+
+**Chart 1:** We start by a chart we have already seen (miles per galon as afunction of displacement, with gear and horse power).
+
+First, for the logo you must install the `rsvg` packages (`install.packages("rsvg")`). Then, you only need to replace the "???" in the proper places. Note that the final command is `grid.raster` from package `grid` (which you may also need to install). This puts the logo into the chart.
+
+```
+#install.packages("rsvg")
+riskified_logo <- rsvg::rsvg("https://3syq88kbbdj40jbkf2ssy21e-wpengine.netdna-ssl.com/wp-content/themes/riskified/images/logo.svg")
+
+ggplot(mtcars, aes(x = disp, y = mpg)) + 
+   geom_point(aes(size = hp, color = factor(gear))) + 
+   scale_???_???(values = c(???, ???, ???)) +
+   ggtitle("???") + 
+   labs(caption = "???") + 
+   theme_??()
+
+grid::grid.raster(riskified_logo, x = 0.07, y = 0.03, just = c("left", "bottom"), width = unit(0.7, 'inches'))
+```
+
+**Chart 2:** Now, we will do the same but to a different chart.
+
+```
+ggplot(telco_churn, aes(x = InternetService, fill=Churn)) + 
+   geom_bar(position = "stack", color = ???) + 
+   scale_???_???(???) + 
+   ggtitle("Comparing Telco's churn over internet service type") +
+   theme_??()
+```
+
+
+# Further study
+
+* Generating maps
+* Generating interactive charts:
+   * Why and when should you do that?
+   * Generating interactive charts using `plotly`
+   * Generating interactive charts using `ggvis`, and describe the main differences between ggvis and ggplot2
+   * Interactive maps using leaflet
+* Generating animated charts using `gganimate`
