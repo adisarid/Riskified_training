@@ -4,24 +4,170 @@ author: "Adi Sarid"
 output: html_document
 ---
 
-
-
 # What for and why now?
 
 When we think about the data science workflow, it makes a lot of sense to start our lesson with tidying data or data transformations, however, I chose to start with visualizations. Why is that?
 
 I'm adopting the approach of the "R for Data Science book", which talks about visualizations in one of its early chapters (even before data transformations), because charts give a lot of motivation to our next chapters and also helps us develop a way of thinking.
 
-As you will see, the following exercises will also contain some elements of tidying and transforming data (because sometimes its a necessity towards working on a chart), but we will not put the emphasis there. In a future lesson we will delve deeper into tidying and data transformations.
+As you will see, the following exercises will also contain some elements of tidying and transforming data (because sometimes its a necessity towards working on a chart). In a future lesson we will delve deeper and extend our knowledge into tidying and data transformations.
 
 **Remember:**
-When you do the exercises, if you get stuck, put on a pink sticky note. If I haven't noticed it, call me. If you finished, put up the green one.
+When you do the exercises, if you get stuck, put on a pink sticky note. If I haven't noticed it, call me. 
 
+Along the exercise we will have "checkpoints", if you reached a checkpoint put on your green sticky note. You can take a break, dring a soda, or continue to the next exercise. Once I see a lot of green sticky notes we will stop and discuss the exercise up to the checkpoint.
+
+# Exercise 1: the *google play* data set
+
+In this exercise we will work with a file downloaded from the competition website kaggle. You can see the details [here](https://www.kaggle.com/lava18/google-play-store-apps). You are going to load the file directly from our course's repository, using the following command:
+
+```{r load googleplay scraped data file}
+
+suppressMessages(
+   library(tidyverse)
+   )
+google_play_raw <- read_csv(file = "https://raw.githubusercontent.com/adisarid/Riskified_training/master/datasets/googleplaystore.csv")
+
+```
+
+**Question 1:** Did you notice I used the `supressMessages(...)` function. What does it do? Why did I use it?
+
+**Question 2:** Did you notice any "parsing failures" when reading the file? 
+Try to figure out what do they mean, and think about how would you solve the problem. The error message contains a row location so you can look at the data in the area of the error to try and figure it out, e.g.: 
+
+```
+location <- ???
+google_play_raw[(location-3):(location+3),]
+```
+
+Once you figure out what's wrong, filter this line out of the file (but note that there are other ways to handle this).
+
+```
+google_play_raw <- google_play_raw[-location,]
+```
+
+**Question 3**: Is there any other way you could have filtered this messy line? (think about `filter()`, the `is.na()` and `!` operator)
+
+Look at the dataset using `glimpse(???)`, notice that most columns were read as characters and a few as double.
+
+**Question 4:** What variables were read as character but you think that you would be better off if they were tranformed to a different type?
+
+The `Category` variable represents the app's category. 
+
+**Question 5:** Complete the code below and answer the questions that follow. Note that the last part of the code (`theme(...)`) is meant to rotate the x axis labels, for better readability. First try without it and then add it.
+
+```
+ggplot(data = ???, mapping = aes(x = Category)) + 
+   geom_bar() + 
+   theme(axis.???.??? = element_text(angle = ???))
+```
+
+
+   1. What is the order by which the columns are sorted?
+
+Build a chart that shows which android versions are supported by each app. Note that in the code we used ` which is required when the variable name contains non-standard characters (e.g. spaces or Hebrew).
+
+```
+ggplot(???, aes(x = `Android Ver`)) + 
+  geom_bar() + 
+  theme(axis.text.x = element_text(angle = 45))
+```
+
+**Question 6:** 
+
+   1. What was the latest android version when the file was generated?
+   2. Would you say that some categories of `Android Ver` should be grouped together?
+
+In the following segment we will examine the relationship between the rating of an app and the number of users who rated it. Build a chart that will help you examine this relationship.
+
+Hint: use a `geom_point()` with x as number of reviews and y as the average rank.
+
+```
+ggplot(XXX, aes(XXX, XXX)) + 
+   geom_XXX() + 
+   stat_smooth(method = "XXX")
+```
+
+**Question 7:** 
+
+   1. In the documentation of `stat_smooth` there are a number of smoothing methods. What did you choose and why?
+   2. Do you see anything wrong with the chart?
+   3. Bonus: is there a transformation (**mathematical function**) which you can use on the x-axis, for the chart to make more sense? What is it? What do you see when you use it, that you didn't see before?
+   
+**Question 8:** Use the function `cut` to split the number of reviews to five different groups. Generate a chart of rank versus reviews in which each new reviews-group is colored in different color.
+
+```
+# note the use of tidyverse here (%>%, mutate, etc.)
+google_play_groups <- google_play %>% 
+   mutate(reviews_group = cut(XXX, breaks = c(10^(0:6), max(Reviews) + 1)))
+   
+rating_reviews_grouped_chart <- 
+  ggplot(google_play_groups, aes(x = XXX, y = XXX, color = XXX)) + 
+  geom_point() + 
+  stat_smooth(method = "lm") +
+  scale_x_log10()
+```
+
+   1. Do you identify any new relationships?
+   2. Do specific ranges have stronger relationships than other ranges?
+
+**Question 9:** Use a boxplot to compare the distribution of the number of reviews between free and paid apps
+
+   1. What does this comparison tells you?
+   2. Use a `log()` transformation on the number of reviews, and re-plot. What do you see now?
+   3. Describe the difference between using `log(Reviews)` versus `scale_y_log()`.
+   4. Compare the average rank of free apps versus paid apps. What does this comparison tells you?
+
+**Question 10:** An alternative way to examine distributions is with a histogram. In this question we will examine the distribution of app size.
+
+   1. What is the problem with the app size variable?
+   2. Use `mutate`, `str_replace` (from package `stringr`) and the function `as.numeric` to convert it.
+   3. Use the functions `geom_histogram` and `geom_freqpoly`. Both has a parameter called `bins`. It's default value is 30. Try to examine different values. What does it affect? What happens when you choose the same value for both? what happens when you choose different values?
+   4. Where is the "main mass" of the distribution?
+   
+```
+google_play <- google_play %>%
+   mutate(size_app_numeric = as.numeric(str_replace(XXX, "M", ""))
+   
+ggplot(XXX, aes(XXX)) + 
+   geom_histogram(fill = "lightblue", bins = XXX) + 
+   geom_freqpoly(size = 1.5, bins = XXX)
+```
+
+**Question 11:** One capability of `ggplot2` is splitting the charts with facets. To the chart you used of average rating versus log(reviews), add a facet (`facet_wrap`) by the variable Category, i.e., add `+ facet_wrap(~ ???)`.
+
+   1. What happened to the trend you identified earlier?
+   2. Compare the EDUCATION category versus TOOLS. What differences do you see and what is their meaning?
+
+**Checkpoint Alpha: If you reached here you have completed the first exercise. Hurray!.**
+
+   a. Hang your green sticky note. 
+   b. Come to me and receive your brand new `ggplot2` badge. 
+   c. You can take a break and/or continue with the exercises. 
+   d. When I see enough green sticky notes around we will solve the last exercise together.
+
+## A very useful trick - automated parameterized reports (with RMarkdown)
+
+This trick is not directly related to plotting, but it seems appropriete to show it now, after we have done a few ggplots and now want to automate our process and run it in batches. Each time varying specific segments and getting a nicely formatted report.
+
+
+
+
+
+# How ggplot2 protects you?
+
+Some of the following was inspired by this [blog post](https://blog.funnel.io/why-we-dont-use-pie-charts-and-some-tips-on-better-data-visualizations).
+
+Dual y-axis (when to use when not to use), pi charts (when not to use - ever)
+
+
+# Additional topics TBD
 
 This class is comprised of a number of exercises over a number of data sets. According to each group's pace, we will cover the following topics (in order):
 
-   * Planning charts according to the ggplot2 philosophy
+   * Planning charts according to the ggplot2 philosophy (covered in the pptx presentation)
    * Basic ggplot2 charts: describing data of various origins and types using charts (factor, numeric, character)
+   * Some quick mini-tasks for tips-and-tricks
    * Generating maps
    * Generating interactive charts:
       * Why and when should you do that?
@@ -34,4 +180,3 @@ This class is comprised of a number of exercises over a number of data sets. Acc
       * Interactive maps using leaflet
       * Understanding what is a shiny app and what is reactive programming
 
-Along the exercise we will have "checkpoints", if you reached a checkpoint put on your green sticky note. You can take a break, dring a soda, or continue to the next exercise. Once I see a lot of green sticky notes we will stop and discuss the exercise up to the checkpoint.
