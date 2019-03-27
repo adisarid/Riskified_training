@@ -113,10 +113,12 @@ rating_reviews_grouped_chart <-
 
 **Question 9:** Use a boxplot to compare the distribution of the number of reviews between free and paid apps
 
-   1. What does this comparison tells you?
-   2. Use a `log()` transformation on the number of reviews, and re-plot. What do you see now?
-   3. Describe the difference between using `log(Reviews)` versus `scale_y_log()`.
-   4. Compare the average rank of free apps versus paid apps. What does this comparison tells you?
+   1. Do you see a redundent category on the x-axis (NaN)? try to get rid of it using `filter()` and `is.nan()`. Did it work? how would you get rid of it?
+   2. Did you notice the error message about infinite values when you plotted the data? what does the error message mean?
+   2. What does this comparison between paid and free tells you?
+   3. Use a `log()` transformation on the number of reviews, and re-plot. What do you see now?
+   4. Describe the difference between using `log(Reviews)` versus `scale_y_log()`.
+   5. Compare the distribution of average rank of free apps versus paid apps. What does this comparison tells you?
 
 **Question 10:** An alternative way to examine distributions is with a histogram. In this question we will examine the distribution of app size.
 
@@ -141,18 +143,35 @@ ggplot(XXX, aes(XXX)) +
 
 **Checkpoint Alpha: If you reached here you have completed the first exercise. Hurray!.**
 
-   a. Hang your green sticky note. 
+   a. Stick your green sticky note. 
    b. Come to me and receive your brand new `ggplot2` badge. 
    c. You can take a break and/or continue with the exercises. 
    d. When I see enough green sticky notes around we will solve the last exercise together.
 
 ## A very useful trick - automated parameterized reports (with RMarkdown)
 
-This trick is not directly related to plotting, but it seems appropriete to show it now, after we have done a few ggplots and now want to automate our process and run it in batches. Each time varying specific segments and getting a nicely formatted report.
+This trick is not directly related to plotting, but it seems appropriete to show it now, after we have done a few ggplots and now want to automate our process. 
 
+Suppose that there are difference moderators that are in charge of each "google play category". You want to provide each moderator with its own data but not others'. This means generating 33 RMarkdown reports (the number of categories), or does it?
 
+Open file `02-Automated-report-sample.Rmd`. For now, skip the first bit that is in the ---. It is called yaml (these are instructions to the RMarkdown compiler).Review the code, mainly it is taken from the exercise you have just solved.
 
+Knit the RMarkdown into an html.
 
+Now, do the same but instead of clicking on knit, open the knit menu (small arrow next to the knit icon), and click *knit with parameters*. Examin what options you have and look back at the *yaml* to see how they correspond to the *yaml* settings. If this didn't work, you might need to install `shiny` using: `install.packages("shiny")`.
+
+To automate the knitting process you can use the following command (try to run it for category "BUSINESS" with app size > 50):
+
+```
+rmarkdown::render(input = ???,
+                  params = list(??? = ???, ??? = ???),
+                  output_file = ???,
+                  output_dir = ???)
+```
+
+When we will learn the `purrr` package, you will see how you can create a script that will render all the categories there are with just a few lines of code.
+
+We now go back to flow of plotting and discuss how ggplot2 protects you against shooting yourself in the leg.
 
 # How ggplot2 protects you?
 

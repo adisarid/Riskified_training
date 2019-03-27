@@ -1,0 +1,63 @@
+---
+title: "Automated report example"
+author: "Adi Sarid / Sarid Research Institute / adi@sarid-ins.co.il"
+date: "27 3 2019"
+output: html_document
+params:
+  app_size:
+    label: "Please select minimum size app (in MByte)"
+    input: slider
+    value: 5
+    min: 0
+    max: 50
+    step: 1
+  app_category:
+    label: "Please select the preffered category"
+    value: [TOOLS]
+    choices: [TOOLS, EDUCATION, BOOKS_AND_REFERENCE, BUSINESS, COMMUNICATION]
+    input: select
+    multiple: TRUE
+    
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+suppressMessages(
+   library(tidyverse)
+   )
+google_play_raw <- read_csv(file = "https://raw.githubusercontent.com/adisarid/Riskified_training/master/datasets/googleplaystore.csv")
+```
+
+## Example for a parametrized report
+
+This is a parametrized report for:
+
+   * Minimum app size is `r params$app_size`,
+   * The covered category is `r params$app_category`.
+   
+We now filter accordingly:
+
+```{r read file}
+google_play <- google_play_raw %>% 
+  filter(!is.na(`Android Ver`)) %>% 
+  mutate(size_app_numeric = as.numeric(str_replace(Size, "M", ""))) %>% 
+  filter(size_app_numeric >= params$app_size & Category %in% params$app_category)
+```
+
+Lets provide some kind of plot, the rating as a function of reviews in a log scale.
+
+```{r plot something}
+rating_reviews_cont_rate <- 
+  ggplot(google_play, 
+         aes(x = Reviews, y = Rating)) + 
+  geom_point() + 
+  stat_smooth(method = "lm") + 
+  scale_x_log10() + 
+  ggtitle(paste0("Apps above ", params$app_size, "Mb", " in category ", params$app_category)) 
+
+if (length(params$app_category) > 1){
+  rating_reviews_cont_rate <- rating_reviews_cont_rate + facet_wrap(~ Category)
+}
+
+rating_reviews_cont_rate
+```
