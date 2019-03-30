@@ -80,7 +80,7 @@ ggplot(data = google_play, mapping = aes(x = Category)) +
 
    1. What is the order by which the columns are sorted? **Lexicographic (abc...)**
 
-Build a chart that shows which android versions are supported by each app.
+Build a chart that shows how many apps are supported by each version (android version on the x-axis and number of apps on the y-axis). Note that in the code we used ` which is required when the variable name contains non-standard characters (e.g. spaces or Hebrew).
 
 **Question 6:** 
 
