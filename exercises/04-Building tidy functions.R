@@ -77,5 +77,3 @@ prop(diamonds, color, clarity) %>% View
 # # Example run
 # mtcars %>%
 #   add_mean(mpg, cyl, vs)
-
-# ==== Question 3: add_function function for any arbitrary summarizing function ====
