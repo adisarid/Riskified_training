@@ -4,9 +4,7 @@ author: "Adi Sarid"
 output: html_document
 ---
 
-# What for and why now?
-
-Tidyverse is an amazing tool. Basically, what tidyverse does is to take a bunch of packages which share a "philosophy" and turn them into a language. It takes a while to get used to, but once you do, you will not to do it any other way. You will speak and think "data analysis in a tidy manner".
+Tidyverse is an amazing tool. Basically, what tidyverse does is to take a bunch of packages which share a "philosophy" and turn them into a language. It takes a while to get used to, but once you do, you will find it extremely friendly and useful. You will speak and think "data analysis in a tidy manner".
 
 We will start with some warm-up exercises.
 
