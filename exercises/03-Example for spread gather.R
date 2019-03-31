@@ -10,7 +10,7 @@ wide_dataset <- tribble(
 )
 
 wide_dataset %>% 
-  gather(key = "day", value = "frauds_detected")
+  gather(key = day, value = frauds_detected)
 
 
 
