@@ -1,0 +1,159 @@
+---
+title: "Using tidyverse"
+author: "Adi Sarid"
+output: html_document
+---
+
+# What for and why now?
+
+Tidyverse is an amazing tool. Basically, what tidyverse does is to take a bunch of packages which share a "philosophy" and turn them into a language. It takes a while to get used to, but once you do, you will not to do it any other way. You will speak and think "data analysis in a tidy manner".
+
+We will start with some warm-up exercises.
+
+## `select`-ing variables
+
+For this exercise we're going to load the Kaggle survey data from 2017. Loading this file might take a while. If you previously cloned the repository, you can also load it from your local directory.
+
+```{r load kaggle survey data}
+
+suppressMessages(
+   library(tidyverse)
+)
+
+kaggle_survey_raw <- read_csv("https://raw.githubusercontent.com/adisarid/Riskified_training/master/datasets/kaggle-survey-2017/multipleChoiceResponses.csv")
+
+```
+
+One parsing failure is related to a column loaded as logical instead of a different data type. Use the function `spec` to inspect the error you got. Try to reload the file forcing a data type on the specific variable.
+
+
+
+```
+spec(???)
+
+kaggle_survey <- read_csv(
+   "???",
+   col_types = 
+      cols("???" = col_???())
+      )
+
+```
+
+**Question 1:** Select all the demographic variables (gender, age,... career switcher), along with all variables which describe the frequency of use for each data science method (e.g.: visualization, decision trees, ensemble methods, etc.).
+
+   1. There are at least two options to conduct this selection (one using a "select helper function" and another by specifying variable range). For the demographics specify the variables (i.e., via range `gender:???`), but for the rest use a select helper function (`starts_with`, `ends_with`, `contains`, `matches`,...).
+   2. Using the function `seq_along` create a respondent_id key for each response in the file.
+   
+```
+kaggle_work_method <- kaggle_survey %>% 
+   select(???, ???) %>% 
+   mutate(respondent_id = seq_along(???))
+```
+
+**Question 2:** Note that all the variables appear as characters, however some of them should be factors, out of which all the "WorkMethodsFrequency..." should have the exact same levels.
+
+   1. Use the function `count()` on a few WorkMethodsFrequency... variables, to figure out which factors are there. Why did I write "on a few... variables" and did not suffice in just one of them?
+   2. Using the function `factor` and `mutate` change the variable `WorkMethodsFrequencyPCA` to a factor. Make sure you consider the following:
+      a. What should you put into the `levels` argument? (do you need to specify it at all?)
+      b. What should you put into the `ordered` argument? (do you need to specify it at all?)
+      c. `glimpse` on the result (or check it out any other way you want, like `View`, `head`, etc.)
+   3. Now, use the function `mutate_at`, a select helper, and `factor` with the arguments you decided on in the last part, and convert all the relevant variables. Save the result into kaggle_work_method (running over the previous dataset).
+
+```
+# this code is for the first part (2):
+kaggle_work_method %>% 
+   mutate(??? = factor(???)) %>% 
+   select(???) %>% 
+   glimpse()
+
+# this code is for the last part (3):
+kaggle_work_method <- kaggle_work_method %>% 
+   mutate_at(vars(???), 
+             funs(???))
+```
+
+
+**Question 3:** In this part, we will prepare our dataset for analysis. We will utilize some of `tidyverse`'s important capabilities such as gathering and joining.
+
+   1. First, using `select` drop all variables except the work variables and the `respondent_id` variable. Can you guess why I asked you to do that? what would've happened if you wouldn't have dropped the non-essential variables?
+   2. Use `gather` on the work variables, leaving the `respondent_id` as key.
+   3. Conduct a grouping by `respondent_id` and using summarize compute for each respondent:
+      a. The total number of methods he/she uses.
+      b. The total number of methods he/she uses most of the time.
+      c. The total number of methods he/she uses often or most of the time.
+   4. Join the original `kaggle_work_method` back to the results you have, into a new tibble called `work_methods_num`. Filter out any records which use no methods at all. How many records do we have left?
+   5. What implicit assumption are we making about `NA`s?
+   
+```
+work_methods_num <- kaggle_work_method %>% 
+   select(starts_with("???"), ???) %>% 
+   gather("???", "???", -???) %>% 
+   group_by(respondent_id) %>% 
+   summarize(tot_methods = ???,
+             methods_most_time = sum(??? %in% ???),
+             methods_often_more = sum(??? %in% ???)) %>% 
+   left_join(???) %>% 
+   filter(???)
+```
+
+**Question 4:** Let's have some fun!, We will now *visualize* some of the data we prepared in the previous question. Note that we are visualizing *distributions*.
+
+   1. What would be a good way to visualize the distribution of the number of methods used often or more? Generate an appropriate ggplot for that (there is more than one plot that would fit here). 
+      a. If you are using a method which requires binning, think carefully about the number of bins.
+   2. What would be a good way to visualize the distribution of the number of methods used (often or more) as a function of age? (notice that the age is numeric, so think if you want to keep it that way or mutate it into a factor.)
+      a. Would you say that there are any age differences?
+   3. Regardless of the method you have chosen in the previous part provide another chart, this time using the empirical distribution function (`stat_ecdf`), and instead of age, use `EmploymentStatus`. Please **explain the ecdf chart** (what are you mapping to the color aesthetics? what is the meaning of the x-axis? what is the meaning of the y-axis?). 
+      a. Is there a difference in the methods used depending on employment status?
+   
+Note that when comparing differences (2a, 3a) we are using an exploratory approach. In statistics there is also a hypothesis testing approach which we might talk about later in this course.
+   
+**Question 5:** We will now examine the relationship between methods, and see if certain methods "go together", i.e. correlate with one another. Correlation is a measure of "how much two variables are linearly dependent" ranging from -1 (opposite linear relationship) through 0 (no linear relationship) and up to 1 (positive linear relationship). 
+
+If you never heard about correlations so far, please check [correlation and dependence on wikipedia](https://en.wikipedia.org/wiki/Correlation_and_dependence).
+
+
+   1. First, let's begin by a few more preperations to the data. Build a small function which receives a vector as an input and outputs a vector as an output. The function should return 0 on `c("Sometimes", "Rarely", NA)`, and should return 1 otherwise.
+
+```
+make_zero_one <- function(???){
+   ???
+}
+```
+
+   2. Select the work method variables (only) and using `mutate_all` change the data of the variables with the function you have built.
+      a. Bonus: How would you have done this using `mutate_if`? read the documentation if you need and consider the function `is.factor` as the `.predicate` argument function.
+      Using `mutate_if` run the function on all the variables in `work_methods_num` which are factor variables.
+      b. There are many "work methods", but we want to get a concise chart with the following methods (specified in this vector): 
+      
+```
+select_only <- c("DecisionTrees", "DataVisualization", "KNN", 
+                 "LogisticRegression", "NLP", "NeuralNetworks", 
+                 "PCA", "RandomForests", "CollaborativeFiltering",
+                 "RecommenderSystems", "Segmentation", "Simulation", "SVMs")
+```
+
+How would you use this vector to select the required variables? hint: you can either use `paste0` and turn it into column names or use `rename_all`+`str_replace` to make your variable names match this vector.
+
+```
+only_work_zero_one <- work_methods_num %>% 
+   select(starts_with("WorkMethods")) %>% 
+   mutate_all(funs(???)) %>% 
+   rename_all(funs(str_replace(., ???, ""))) %>% 
+   select(???)
+```
+
+   3. Now install the package `ggcorrplot`. This is a package which generates correlograms (shows a matrix of the correlations between all variables).
+
+```
+install.packages("ggcorrplot")
+```
+
+   4. Turn the `only_work_zero_one` into a correlation matrix and use `ggcorrplot` to generate a correlogram.
+      a. Explain which methods are related? 
+      b. why do you think that is the case? choose two correlated methods, read about them (i.e., online), and explain why they come out correlated.
+
+```
+corr_mat <- cor(only_work_zero_one)
+ggcorrplot::ggcorrplot(???,
+                       hc.order = TRUE, lab = TRUE)
+```
