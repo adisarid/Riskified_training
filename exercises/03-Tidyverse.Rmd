@@ -157,3 +157,25 @@ corr_mat <- cor(only_work_zero_one)
 ggcorrplot::ggcorrplot(???,
                        hc.order = TRUE, lab = TRUE)
 ```
+
+**Question 6:** In the previous question, we classified "Most of the time" and "Often" as 1 and the rest as 0. How would our correlation results change if the frequency we classify as "1" changes? Build a function which gets a vector of frequencies as the first argument and a vector of method names (without the "WorkMethods" part) as the second argument. 
+
+   1. The function should return the same type of chart we plotted in the previous questions. 
+   2. The function's default values should be the same as the values we used to generate the chart in question 5.
+   
+```
+custom_zero_one <- function(factor_vector, one_values){
+   ???
+}
+
+create_methods_corrgram <- function(frequency_qual = ???, work_methods = ???){
+   ???
+}
+
+create_methods_corrgram("Most of the time")
+create_methods_corrgram()
+create_methods_corrgram(c("Most of the time", "Often", "Sometimes"))
+create_methods_corrgram(c("Most of the time", "Often", "Sometimes", "Rarely"))
+
+
+```
