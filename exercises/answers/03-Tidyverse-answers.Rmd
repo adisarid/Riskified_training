@@ -154,7 +154,7 @@ make_zero_one <- function(factor_vector){
 ```{r mutate if to replace factors}
 only_work_zero_one <- work_methods_num %>% 
    select(starts_with("WorkMethods")) %>% 
-   mutate_all(funs(make_zero_one))
+   mutate_all(list(~make_zero_one))
 ```
 
    3. Now install the package `ggcorrplot`. This is a package which generates correlograms (shows a matrix of the correlations between all variables).
@@ -171,7 +171,7 @@ install.packages("ggcorrplot")
 select_only <- c("DecisionTrees", "DataVisualization", "KNN", "LogisticRegression", "NLP", "NeuralNetworks", "PCA", "RandomForests", "RecommenderSystems", "Segmentation", "Simulation", "SVMs", "CollaborativeFiltering")
 
 corr_mat <- cor(only_work_zero_one %>% 
-                   rename_all(funs(str_replace(., "WorkMethodsFrequency", ""))) %>% 
+                   rename_all(list(~str_replace(., "WorkMethodsFrequency", ""))) %>% 
                    select(one_of(select_only)))
 ggcorrplot::ggcorrplot(corr_mat,
                        hc.order = TRUE, lab = TRUE)
@@ -196,8 +196,8 @@ create_methods_corrgram <- function(frequency_qual = c("Most of the time", "Ofte
    
    corr_mat <- work_methods_num %>% 
       select(starts_with("WorkMethods")) %>% 
-      rename_all(funs(str_replace(., "WorkMethodsFrequency", ""))) %>% 
-      mutate_all(funs(custom_make_one(., one_values = frequency_qual))) %>% 
+      rename_all(list(~str_replace(., "WorkMethodsFrequency", ""))) %>% 
+      mutate_all(list(~custom_make_one(., one_values = frequency_qual))) %>% 
       select(one_of(work_methods)) %>% 
       cor()
    correlogram_plot <- ggcorrplot::ggcorrplot(corr_mat, hc.order = FALSE, lab = TRUE) 
