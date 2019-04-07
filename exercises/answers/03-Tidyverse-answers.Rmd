@@ -1,7 +1,9 @@
 ---
 title: "Using tidyverse"
 author: "Adi Sarid"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 Tidyverse is an amazing tool. Basically, what tidyverse does is to take a bunch of packages which share a "philosophy" and turn them into a language. It takes a while to get used to, but once you do, you will find it extremely friendly and useful. You will speak and think "data analysis in a tidy manner".
@@ -56,8 +58,8 @@ kaggle_work_method <- kaggle_survey %>%
 ```{r example factorize}
 kaggle_work_method <- kaggle_work_method %>% 
    mutate_at(vars(starts_with("WorkMethodsFrequency")), 
-             funs(
-                factor(.,
+             list(
+                ~factor(.,
                        levels = c("Most of the time",
                                   "Often",
                                   "Sometimes",
@@ -119,7 +121,7 @@ ggplot(work_methods_num %>%
    xlab("Age group") +
    xlab("# Methods") +
    ggtitle("Number of methods used by data scientists often or more\ncomparison by age using violin plots",
-           subtitle = "Note that the (80, 100] age group is very small and should have been joint to another group") +
+           subtitle = "Note that the (80, 100] age group is very small and should have been joined to another group") +
    labs(caption = "Data Source: Kaggle's 2017 members survey")
 
 ggplot(work_methods_num, 
