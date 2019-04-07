@@ -1,0 +1,222 @@
+---
+title: "Clustering"
+author: "Adi Sarid"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+The following document teaches clustering, and continues for some exercises. The first part I will present in class with explanations.
+
+# How K Means clustering works
+
+So far we have dealt a lot with (mt)cars. now it's time for some flowers.
+```{r the iris data set}
+library(tidyverse)
+glimpse(iris)
+iris %>% count(Species)
+# The original split of iris:
+ggplot(iris, aes(Sepal.Width, Petal.Length, color = Species)) + geom_point()
+```
+
+But for now, assume that the species classification is **unknown**, and we wish to split the observations to a number of clusters for better study.
+
+```{r illustration of iris k2-means}
+# Now, illustrating KMeans on the two variables
+iris_kmeans2 <- kmeans(iris %>% select(Sepal.Width, Petal.Length),
+                       centers = 2)
+iris_kmeans2
+
+iris_kmeans2$centers
+iris_kmeans2$cluster
+```
+
+The following code runs the same algorithm only for k=3 and k = 5, and merges the results into a single data set for plotting purposes.
+
+```{r iris k3-means3 k5-means}
+iris_kmeans3 <- kmeans(iris %>% select(Sepal.Width, Petal.Length),
+                       centers = 3)
+iris_kmeans5 <- kmeans(iris %>% select(Sepal.Width, Petal.Length),
+                       centers = 5)
+
+iris_kmeans <- iris %>%
+  mutate(kmeans2 = iris_kmeans2$cluster,
+         kmeans3 = iris_kmeans3$cluster,
+         kmeans5 = iris_kmeans5$cluster) %>%
+  select(starts_with("kmeans"), Sepal.Width, Petal.Length) %>%
+  gather(clusters, cluster_num, -Sepal.Width, -Petal.Length)
+
+iris_kmeans_centers <- as_tibble(iris_kmeans2$centers) %>%
+  rownames_to_column() %>%
+  mutate(clusters = "kmeans2") %>%
+  bind_rows(
+    as_tibble(iris_kmeans3$centers) %>%
+  rownames_to_column() %>%
+  mutate(clusters = "kmeans3")
+  ) %>%
+  bind_rows(
+    as_tibble(iris_kmeans5$centers) %>%
+  rownames_to_column() %>%
+  mutate(clusters = "kmeans5")
+  ) %>%
+  rename(cluster_num = rowname)
+
+ggplot(iris_kmeans, aes(x = Sepal.Width, y = Petal.Length, color = factor(cluster_num))) +
+  geom_point(size = 2) +
+  facet_wrap(~ clusters) + 
+  guides(color = guide_legend(title = "Cluster classification")) + 
+  geom_point(data = iris_kmeans_centers, size = 5, shape = 21, 
+             aes(fill = factor(cluster_num)), color = "black", alpha = 0.5) + 
+  scale_fill_discrete(guide = "none")
+```
+
+# Exercise 1 - clustering patient data with K Means clustering
+
+In this exercise we will study patient data, and try to cluster different patients. We will also examine if this clustering has any meaning regarding age, gender, and bailing out on doctor appointments ("no-show").
+
+The data set can be read from the git repository. The following code will read the data and prepare the file for work.
+
+```{r read no show data}
+appointments <- read_csv("https://raw.githubusercontent.com/adisarid/Riskified_training/master/datasets/Medical_Appointments_No_Shows_KaggleV2-May-2016.csv") %>% 
+   select(Gender, Age, Scholarship:`No-show`) %>% 
+  mutate(Handcap = (Handcap >= 1)*1) %>% 
+  mutate(no_show = `No-show` == "Yes")
+```
+
+**Question 1:** Use just the 0-1 variables (i.e.: Scholarship,..., SMS_received) to generate a `kmeans` clustering. You can use the code which follows, and answer the following:
+
+   1. Test a few possible values for k.
+   2. Using a boxplot (or another plot type) examine the age distribution compared over clusters.
+   3. Do the same for gender (compare using a boxplot).
+   4. Do you recognize any characteristics to the groups? i.e. do certain clusters have differences in the demographic variables (which were not part of the original clustering)
+   5. Can the clusters be used to predict patients which are going to bail out of a doctor's appointment (`No-show==1`)?
+
+```
+appointments_kmeansXXX <- kmeans(appointments %>% select(Scholarship:SMS_received), centers = XXX)
+
+appointments_cluster <- appointments %>%
+  mutate(kmeansXXX_cluster = XXX) %>%
+  mutate(male = XXX == XXX) %>% 
+  mutate(no_show = `No-show` == "Yes)
+
+# The following code will help you show the averages of the different variables,
+# by using the mechanism we talked about in previous units (summarize_at):
+
+appointments_cluster %>%
+  select(Scholarship:SMS_received, kmeansXXX_cluster, Age, male, no_show) %>%
+  add_count(kmeansXXX_cluster) %>%
+  group_by(kmeansXXX_cluster) %>%
+  summarize_at(.vars = vars(1:6, Age, male, n, no_show), 
+               .funs = list(~mean(.)))
+```
+
+After you complete this exercise, put on your green sticky note.
+
+# How Hierarchical clustering works
+
+This is a different method for clustering. It is much slower since it requires much more computational effort (has a lot more distance computations), but sometimes it may add some insights.
+
+Here is an illustration of the `iris` data set, clustered by all axis
+
+```{r iris hclust example, fig.width=8, fig.height=8}
+# prepare the dataset with observation numbering
+iris_prep <- iris %>% 
+  mutate(obs = paste0(seq_along(Species), "-", Species)) %>%
+  column_to_rownames("obs") %>%
+  select(-Species)
+
+# compute the distance matrix
+iris_dist <- dist(iris_prep, method = "euclidean")
+
+# generate the h-clustering
+iris_clust <- hclust(iris_dist, method = "ave")
+
+# The following will show us the order in which observations were merged:
+iris_clust$order
+
+# We can generate the default plot which shows the tree
+plot(iris_clust, labels = F, hang = -1)
+
+# The height object shows us a measure for the dissimilarity between the merged clusters
+iris_clust$height
+
+# cutree can be used to cut the tree at any given height or a given number of classes
+iris_hclust_df <- iris %>% 
+  mutate(hclust_k3 = cutree(iris_clust, k = 3),
+         hclust_h1 = cutree(iris_clust, h = 1))
+
+count(iris_hclust_df, Species, hclust_k3)
+count(iris_hclust_df, Species, hclust_h1)
+
+```
+
+# Exercise 2 - continue to here
+
+**Question 1:** Using the function `sample_n`, sample 5000 observations from `appointments` (otherwise the clustering algorithm will take too long).
+
+   1. Use `hclust` on the data (same data as before with the same variables). 
+   2. Compare the clustering results to the previous algorithm (`kmeans`), do you see any differences? any similarities?
+   3. Try changing the linkage function with a few options (`method = "complete"`, `method = single`, `method = median`).
+   4. What clustering is best in differentiating the `no_show` variable?
+   
+# Using PCA for dimension reduction
+
+## PCA demonstration on `iris`
+
+```{r iris pca example, messages=FALSE, warning=FALSE, fig.width=5, fig.height=3}
+# lets try to reduce the dimension of the iris dataset
+ggplot(iris, aes(Sepal.Length, Sepal.Width, color = Species)) + geom_point()
+ggplot(iris, aes(Sepal.Length, Petal.Length, color = Species)) + geom_point()
+ggplot(iris, aes(Sepal.Length, Petal.Width, color = Species)) + geom_point()
+ggplot(iris, aes(Sepal.Width, Petal.Width, color = Species)) + geom_point()
+ggplot(iris, aes(Sepal.Width, Petal.Length, color = Species)) + geom_point()
+ggplot(iris, aes(Petal.Length, Petal.Width, color = Species)) + geom_point()
+
+# It looks like every two axis have their interaction (or not)
+# Some are very correlated, for example the Petal.Width and Petal.Length seem to have a very strong linear relationship.
+# To a lesser extent, the same can be said for Petal.Length<->Sepal.Length, and Petal.Width<->Sepal.Length
+
+# Now, lets run the PCA
+iris_pca <- prcomp(iris %>% select(-Species))
+iris_pca
+```
+
+We are reported on exactly 4 items, since this is the original number of axis we provided to `prcomp`. The table shows the coefficients we need to generate the new principle component.
+
+```{r pca summary}
+summary(iris_pca)
+
+# the following matrix contains the variables after they were rotated by the PCA
+head(iris_pca$x)
+
+# to rotate new data, just use the standard predict form
+predict(object = iris_pca, newdata = iris %>% slice(1:5))
+# `slice` selects the rows 1:5
+ggplot(as_tibble(iris_pca$x) %>%
+         mutate(Species = iris$Species), aes(x = PC1, y = PC2, color = Species)) + 
+  geom_point() + 
+  coord_equal() + 
+  ggtitle("The first two components of PCA on the iris dataset")
+
+```
+
+# Exercise 3 - PCA
+
+**Question 1:** Conduct PCA on all the 0-1 variables of the appointment data.
+
+   1. How many dimensions do you need to explain $80\%$ of the variance?
+   2. The PCA command has two arguments: scale and center. These arguments "prepare" the data by centering each variable and scaling it (`center`, `scale.`). Rerun the `prcomp` with these arguments on `TRUE`. Did the PCA improve in any way?
+   2. Generate a new data set with the new features along with age and gender (in original form).
+
+```{r pca exercise results}
+
+appointments_pca <- prcomp(appointments %>% select(Scholarship, Hipertension, Diabetes, Alcoholism,
+                                                   Handcap, SMS_received),
+                           scale. = FALSE, center = FALSE)
+summary(appointments_pca)
+
+appointments_pca <- prcomp(appointments %>% select(Scholarship, Hipertension, Diabetes, Alcoholism,
+                                                   Handcap, SMS_received),
+                           scale. = TRUE, center = TRUE)
+summary(appointments_pca)
+```

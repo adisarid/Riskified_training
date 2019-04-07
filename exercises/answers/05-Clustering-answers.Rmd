@@ -1,0 +1,201 @@
+---
+title: "Clustering"
+author: "Adi Sarid"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+The following document teaches clustering, and continues for some exercises. The first part I will present in class with explanations.
+
+# How clustering works
+
+So far we have dealt a lot with (mt)cars. now it's time for some flowers.
+```{r the iris data set}
+library(tidyverse)
+glimpse(iris)
+iris %>% count(Species)
+# The original split of iris:
+ggplot(iris, aes(Sepal.Width, Petal.Length, color = Species)) + geom_point()
+```
+
+But for now, assume that the species classification is **unknown**, and we wish to split the observations to a number of clusters for better study.
+
+```{r illustration of iris k2-means}
+# Now, illustrating KMeans on the two variables
+iris_kmeans2 <- kmeans(iris %>% select(Sepal.Width, Petal.Length),
+                       centers = 2)
+iris_kmeans2
+
+iris_kmeans2$centers
+iris_kmeans2$cluster
+```
+
+The following code runs the same algorithm only for k=3 and k = 5, and merges the results into a single data set for plotting purposes.
+
+```{r iris k3-means3 k5-means}
+iris_kmeans3 <- kmeans(iris %>% select(Sepal.Width, Petal.Length),
+                       centers = 3)
+iris_kmeans5 <- kmeans(iris %>% select(Sepal.Width, Petal.Length),
+                       centers = 5)
+
+iris_kmeans <- iris %>%
+  mutate(kmeans2 = iris_kmeans2$cluster,
+         kmeans3 = iris_kmeans3$cluster,
+         kmeans5 = iris_kmeans5$cluster) %>%
+  select(starts_with("kmeans"), Sepal.Width, Petal.Length) %>%
+  gather(clusters, cluster_num, -Sepal.Width, -Petal.Length)
+
+iris_kmeans_centers <- as_tibble(iris_kmeans2$centers) %>%
+  rownames_to_column() %>%
+  mutate(clusters = "kmeans2") %>%
+  bind_rows(
+    as_tibble(iris_kmeans3$centers) %>%
+  rownames_to_column() %>%
+  mutate(clusters = "kmeans3")
+  ) %>%
+  bind_rows(
+    as_tibble(iris_kmeans5$centers) %>%
+  rownames_to_column() %>%
+  mutate(clusters = "kmeans5")
+  ) %>%
+  rename(cluster_num = rowname)
+
+ggplot(iris_kmeans, aes(x = Sepal.Width, y = Petal.Length, color = factor(cluster_num))) +
+  geom_point(size = 2) +
+  facet_wrap(~ clusters) + 
+  guides(color = guide_legend(title = "Cluster classification")) + 
+  geom_point(data = iris_kmeans_centers, size = 5, shape = 21, 
+             aes(fill = factor(cluster_num)), color = "black", alpha = 0.5) + 
+  scale_fill_discrete(guide = "none")
+```
+
+# Exercise 1 - clustering patient data with K Means clustering
+
+In this exercise we will study patient data, and try to cluster different patients. We will also examine if this clustering has any meaning regarding age, gender, and bailing out on doctor appointments ("no-show").
+
+The data set can be read from the git repository. The following code will read the data and prepare the file for work.
+
+```{r read no show data}
+appointments <- read_csv("https://raw.githubusercontent.com/adisarid/Riskified_training/master/datasets/Medical_Appointments_No_Shows_KaggleV2-May-2016.csv") %>% 
+   select(Gender, Age, Scholarship:`No-show`) %>% 
+  mutate(Handcap = (Handcap >= 1)*1) %>% 
+  mutate(no_show = `No-show` == "Yes")
+```
+
+**Question 1:** Use just the 0-1 variables (i.e.: Scholarship,..., SMS_received) to generate a `kmeans` clustering. You can use the code which follows, and answer the following:
+
+   1. Test a few possible values for k.
+   2. Using a boxplot (or another plot type) examine the age distribution compared over clusters.
+   3. Do the same for gender (compare using a boxplot).
+   4. Do you recognize any characteristics to the groups? i.e. do certain clusters have differences in the demographic variables (which were not part of the original clustering)
+   5. Can the clusters be used to predict patients which are going to bail out of a doctor's appointment (`No-show==1`)?
+
+```{r appointments clustering}
+set.seed(1)
+appointments_kmeans3 <- kmeans(appointments %>% select(Scholarship:SMS_received), centers = 3)
+
+appointments_cluster <- appointments %>%
+  mutate(kmeans3_cluster = appointments_kmeans3$cluster) %>%
+  mutate(male = (Gender == "M")*1)
+
+# The following code will help you show the averages of the different variables,
+# by using the mechanism we talked about in previous units (summarize_at):
+
+appointments_cluster %>%
+  select(Scholarship:SMS_received, kmeans3_cluster, Age, male, no_show) %>%
+  add_count(kmeans3_cluster) %>%
+  group_by(kmeans3_cluster) %>%
+  summarize_at(.vars = vars(1:6, Age, male, n, no_show), 
+               .funs = list(~mean(.)))
+
+ggplot(appointments_cluster, aes(x = factor(kmeans3_cluster), y = Age)) + geom_boxplot()
+```
+
+# How Hierarchical clustering works
+
+This is a different method for clustering. It is much slower since it requires much more computational effort (has a lot more distance computations), but sometimes it may add some insights.
+
+Here is an illustration of the `iris` data set, clustered by all axis
+
+```{r iris hclust example, fig.width=8, fig.height=8}
+# prepare the dataset with observation numbering
+iris_prep <- iris %>% 
+  mutate(obs = paste0(seq_along(Species), "-", Species)) %>%
+  column_to_rownames("obs") %>%
+  select(-Species)
+
+# compute the distance matrix
+iris_dist <- dist(iris_prep, method = "euclidean")
+
+# generate the h-clustering
+iris_clust <- hclust(iris_dist, method = "ave")
+
+# The following will show us the order in which observations were merged:
+iris_clust$order
+
+# We can generate the default plot which shows the tree
+plot(iris_clust, labels = F, hang = -1)
+
+# The height object shows us a measure for the dissimilarity between the merged clusters
+iris_clust$height
+
+# cutree can be used to cut the tree at any given height or a given number of classes
+iris_hclust_df <- iris %>% 
+  mutate(hclust_k3 = cutree(iris_clust, k = 3),
+         hclust_h1 = cutree(iris_clust, h = 1))
+
+count(iris_hclust_df, Species, hclust_k3)
+count(iris_hclust_df, Species, hclust_h1)
+
+```
+
+## Exercise 2 - hclust
+
+**Question 1:** Using the function `sample_n`, sample 5000 observations from `appointments` (otherwise the clustering algorithm will take too long).
+
+   1. Use `hclust` on the data (same data as before with the same variables). 
+   2. Compare the clustering results to the previous algorithm (`kmeans`), do you see any differences? any similarities?
+   3. Try changing the linkage function with a few options (`method = "complete"`, `method = single`, `method = median`).
+
+```{r hclust answers}   
+appointments_sample <- appointments %>%
+  mutate(kmeans3_cluster = appointments_kmeans3$cluster) %>%
+  sample_n(5000) 
+
+appointments_dist <- dist(appointments_sample %>%
+                            select(Scholarship:SMS_received),
+                          method = "euclidean")
+# single linkage
+appointments_hclust <- hclust(appointments_dist, method = "single")
+appointments_sample <- appointments_sample %>%
+  mutate(hclust3 = cutree(appointments_hclust, k = 3))
+appointments_sample %>%
+  count(hclust3, kmeans3_cluster) %>%
+  group_by(hclust3) %>%
+  mutate(prop = n/sum(n)) %>%
+  select(-n) %>%
+  spread(kmeans3_cluster, prop, fill = 0)
+
+# average linkage
+appointments_hclust <- hclust(appointments_dist, method = "median")
+appointments_sample <- appointments_sample %>%
+  mutate(hclust3 = cutree(appointments_hclust, k = 3))
+appointments_sample %>%
+  count(hclust3, kmeans3_cluster) %>%
+  group_by(hclust3) %>%
+  mutate(prop = n/sum(n)) %>%
+  select(-n) %>%
+  spread(kmeans3_cluster, prop, fill = 0)
+
+# complete linkage
+appointments_hclust <- hclust(appointments_dist, method = "complete")
+appointments_sample <- appointments_sample %>%
+  mutate(hclust3 = cutree(appointments_hclust, k = 3))
+appointments_sample %>%
+  count(hclust3, kmeans3_cluster) %>%
+  group_by(hclust3) %>%
+  mutate(prop = n/sum(n)) %>%
+  select(-n) %>%
+  spread(kmeans3_cluster, prop, fill = 0)
+```
