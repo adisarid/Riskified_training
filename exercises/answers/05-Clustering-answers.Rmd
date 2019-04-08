@@ -199,3 +199,26 @@ appointments_sample %>%
   select(-n) %>%
   spread(kmeans3_cluster, prop, fill = 0)
 ```
+
+# Exercise 3 - PCA
+
+**Question 1:** Conduct PCA on all the 0-1 variables of the appointment data.
+
+   1. How many dimensions do you need to explain $80\%$ of the variance?
+   2. The PCA command has two arguments: scale and center. These arguments "prepare" the data by centering each variable and scaling it (`center`, `scale.`). Rerun the `prcomp` with these arguments on `TRUE`. Did the PCA improve in any way?
+   2. Generate a new data set with the new features along with age and gender (in original form).
+
+```{r pca exercise results}
+
+appointments_pca <- prcomp(appointments %>% select(Scholarship, Hipertension, Diabetes, Alcoholism,
+                                                   Handcap, SMS_received),
+                           scale. = FALSE, center = FALSE)
+summary(appointments_pca)
+
+appointments_pca <- prcomp(appointments %>% select(Scholarship, Hipertension, Diabetes, Alcoholism,
+                                                   Handcap, SMS_received),
+                           scale. = TRUE, center = TRUE)
+summary(appointments_pca)
+
+new_appointments <- appointments %>% bind_cols(as_tibble(appointments_pca$x)) %>% head()
+```
