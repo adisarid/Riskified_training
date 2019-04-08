@@ -220,5 +220,5 @@ appointments_pca <- prcomp(appointments %>% select(Scholarship, Hipertension, Di
                            scale. = TRUE, center = TRUE)
 summary(appointments_pca)
 
-new_appointments <- appointments %>% bind_cols(as_tibble(appointments_pca$x)) %>% head()
+new_appointments <- appointments %>% select(no_show) %>% bind_cols(as_tibble(appointments_pca$x))
 ```
