@@ -1,0 +1,138 @@
+---
+title: "Linear regression"
+author: "Adi Sarid"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+We talked in the previous unit about clustering, which is part of **unsupervised learning**. In this unit we discuss linear regression which is a supervised learning model. This is a relatively simple supervised learning model, but will help us demonstrate some principles, starting with this one:
+
+In a supervised learning model, we are looking for a function $f$ which yields the best prediction considering:
+
+\[Y=f(X)+\epsilon\]
+
+Linear regression assumes that the underlying structure we are looking for is expressed by:
+
+\[Y = \beta_0 + \beta_1x_1+\ldots+\beta_px_p\ + \epsilon\]
+
+We solve a minimization problem that finds the coefficients $\{\beta_i\}_{i=0}^p$, which yield the minimum error, in this case the minimum sum of squares.
+
+```{r linear regression explanation, message=FALSE, warning=FALSE}
+library(tidyverse)
+
+iris_setosa <- iris %>%
+  filter(Species == "setosa") %>%
+  mutate(Sepal.Length = jitter(Sepal.Length))
+
+setosa_lm = lm(data = iris_setosa,
+               formula = Sepal.Width ~ Sepal.Length)
+
+iris_lm_errors <- iris_setosa %>%
+  mutate(Sepal.Width.pred = predict(setosa_lm, 
+                                    newdata = iris %>% 
+                                      filter(Species == "setosa")))
+
+ggplot(iris_lm_errors, 
+       aes(x=Sepal.Length, y=Sepal.Width)) + 
+  geom_point() + stat_smooth(method = "lm", se = FALSE) + 
+  geom_segment(aes(x = Sepal.Length, xend = Sepal.Length, y = Sepal.Width, yend = Sepal.Width.pred))
+
+```
+
+The linear regression solution yields the linear fit which minimizes the observation distances from the line.
+
+A summary of a linear model will look like this:
+
+```{r iris more complex lm}
+
+iris_lm_complete <- lm(data = iris, 
+                       formula = Sepal.Width ~ Sepal.Length + Petal.Width + Petal.Length)
+
+summary(iris_lm_complete)
+  
+```
+
+The estimate reflects the coefficients of the model, i.e.:
+
+\[\text{Sepal.Width} \approx 1.04 + 0.61\cdot\text{Sepal.Length} + 0.56\cdot\text{Petal.Width} -0.58\cdot\text{Petal.Length}\]
+
+The next column reflects the statistical (standard) error of the coefficients, the next column is a statistic relating to the parameter, which is utilized for the test in the last column (t value is used to compute the p-value in the last column).
+
+Stars to the right of each row reflect significant coefficients (statistically we can say that the are non-zeros, with a $95\%$ confidence interval).
+
+In the buttom we can see the multiple R-sqared and Adjusted R-squared. The range in 0-1 and values closed to 1 reflect a stronger linear relationship.
+
+The RSE (residual standard error) in the buttom of the summary is given by:
+
+\[\text{RSE} = \sqrt{\frac{\text{RSS}}{n-2}} = \sqrt{\frac{1}{n-2}\sum_{i=1}^n\left(y_i-\hat{y}_i\right)^2}\]
+
+The formula for $R^2$ by:
+
+\[R^2 = 1 - \frac{\sum_{i=1}^n\left(y_i-\hat{y}_i\right)^2}{\sum_{i=1}^n\left(y_i-\bar{y}_i\right)^2} = 1 - \frac{\text{RSS}}{\text{TSS}}\]
+
+We will not dive into the theory of linear regression further, but to the interested, you can read:
+
+   * Gareth J., Witten D., Hastie T., and Tibshirani R., An Introduction to Statistical Learning with Applications in R, <i>Springer</i>, 7th printing, 2017. Online access: <a href="http://www.statlearning.com">www.statlearning.com</a>, (feteched October 2018).</div>
+
+In practice, a linear regression model can be used to predict a continuous outcome, but in some cases can also be used for classification or ordinal (ordered factor) outcome.
+
+
+### Category variables (factors) in linear regression
+
+In the last example we discussed continuous variables, but sometimes we want to incorporate factors. For example how gender or education level (both are factors) influence income (continuous). In the case of gender, we can use:
+
+\[\text{Salary} = \beta_0 + \beta_{\text{f}}\cdot X_{\text{female}}\]
+
+The nominal value will be $\beta_0$ and an addition (or subtraction) of $\beta_{\text{f}}$ will apply if the observation is female.
+
+***
+
+#### Quiz
+
+   1. How would we deal with...? 
+      a. An ordinal variable? (e.g. income levels)
+      b. A factor? (e.g. family status)
+
+***
+
+### Generalization to a non-linear model
+
+To generalize to a non-linear form while remaining in the same additive framework, we can transform some of the variables. In the next example we incorporate the interaction of Petal.Length and Petal.Width.
+
+```{r non-linear regression}
+
+iris_nonlm <- lm(data = iris %>% mutate(sqaured.Length = Sepal.Length^2),
+                 formula = 
+                   Sepal.Width ~ 
+                   Sepal.Length + Petal.Length + Petal.Width + 
+                   sqaured.Length + Petal.Length*Petal.Width + 
+                   factor(Species))
+summary(iris_nonlm)
+
+```
+
+***
+
+### Pitfalls of linear regression - outliers
+
+   * Heteroschedastity
+   * Correlations between variables makes you see misleading things
+   * Outliers
+   
+```{r illustration of outliers}
+
+iris_setosa_outlier <- iris_setosa %>%
+  add_row(Sepal.Length = 5.1, Sepal.Width = 35, Petal.Length = 1.4, Petal.Width = 0.2, Species = "setosa")
+
+ggplot(iris_setosa_outlier, aes(x = Sepal.Length, y = Sepal.Width)) + 
+  geom_point() + stat_smooth(method = "lm", se = FALSE,
+                             linetype = "dashed") + 
+  stat_smooth(inherit.aes = FALSE,
+              method = "lm", 
+              data = iris_setosa, aes(x = Sepal.Length, y = Sepal.Width), 
+              se = FALSE) + 
+  coord_cartesian(ylim = c(2, 4.5)) + 
+  ggtitle("The influence of a single outlier on the regression model\nChart is zoomed-in, i.e., the outlier (5.1, 35) is not visible in the chart")
+
+```
