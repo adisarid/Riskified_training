@@ -1,0 +1,360 @@
+---
+title: "Logistic Regression"
+author: "Adi Sarid"
+output: html_document
+---
+
+Logistic regression in many ways is similar to linear regression:
+
+   * It is based on a particular "linear" formation.
+   * Share a lot of the statistical assumptions that linear regression assumes.
+   * Practically the commands for logistic regression in R are similar to those of linear regression.
+
+The significant difference however is that instead of predicting an unbound value, we're predicting the **probability** of an event, i.e., a number between 0 and 1. For this reasone, it is widely used for **classification**, i.e., is a certain transaction a fraud or not, will a certain customer churn, will a lead convert...
+
+Why can't we use linear regression for that?
+
+We are trying to predict the following probabilistic event:
+
+\[p(Y=1|X)\]
+
+In short: 
+
+\[p(X)\]
+
+With **linear** regression we will get the following formula:
+
+\[p(X) = \beta_0 + \beta_1X_1+\ldots\beta_p X_p\]
+
+However, with this kind of formula we might get a number greater than 1 or lower than 0, which is not possible for a probability!
+
+## Logit for the rescue
+
+The following expression will always be in $[0, 1]$:
+
+\[p(X)=\frac{e^{\beta_0 + \beta_1 X_1 + \ldots + \beta_p x_p}}{1 + e^{\beta_0 + \beta_1 X_1 + \ldots + \beta_p x_p}}\]
+
+The expression in the power of $e$ is linear and very similar to what we used in linear regression.
+
+## Odds ration
+
+Another important term is odds ratio. In sport gambles it is widely common to see the ratio of winning against losing ("this hourse is a bet of 10 to 1"), in our formulation this becomes:
+
+\[\frac{p(X)}{1-p(X)} = e^{\beta_0 + \beta_1 X_1 + \ldots}\]
+
+This emphasizes the meaning of the $\beta$ coefficients in logistic regression. If in linear regression they were used to measure the influence of a unit's change in $X$ on the dependent variable $y$, here in logistic regression it shows by how much the odds ration increases (multiplies) when a single unit of $X$ is added.
+
+To compute the values of $\beta$ a mximum likelihood method is used, but we will not focus on the math here.
+
+To run a logistic regression model we just have to put small modification to the already familiar `lm` command, mainly use `glm` instead:
+
+```{r example for logistic regression, warnings=FALSE, messages=FALSE}
+
+library(tidyverse)
+
+# read the no show data of patients
+appointments <- read_csv("https://raw.githubusercontent.com/adisarid/Riskified_training/master/datasets/Medical_Appointments_No_Shows_KaggleV2-May-2016.csv") %>%
+  mutate(no_show = `No-show` == "Yes") # change the Yes/No into True/False (which is like having 1-0)
+
+# split to train and test set
+appointments <- appointments %>%
+  mutate(is_train = runif(NROW(appointments)) <= 0.8)
+
+# build the linear regression model
+appointments_model <- glm(formula = 
+                            no_show ~ Gender + Age + Scholarship + Hipertension + Diabetes +
+                            Alcoholism + Handcap + SMS_received,
+                          family = binomial,
+                          data = appointments %>% filter(is_train))
+
+summary(appointments_model)
+
+```
+
+The results are displayed in a very similar manner to what we have already seen:
+
+   * Coefficients now represent the power of $e$
+   * Estimate of Scholarship = 0.17266, i.e., scholarship patients are 1.2 times more likely to not show up. 
+   
+We can access the coefficients like this:
+   
+```{r coefficient meaning in logistic regression}
+
+exp(appointments_model$coefficients)
+
+```
+
+The R-Square we used in linear regression is now replaced by the AIC (the Akaike criteria). The lower Akaike, the better the model is. Similarly, the residuals are replaced with deviance.
+
+As in the linear regression, we also get a statistical test for the hypothesis that the coefficients are non-zero.
+
+*** 
+
+## Exercise
+
+The function `MASS:stepAIC` uses a "step-wise" algorithm to search for model improvements. In each step it tries to remove (or add) variables, and reach a better model.
+
+   1. Try to improve the previous model by adding or removing variables, you can use `MASS:stepAIC`.
+   
+```{r stepwise to improve logistic regression, include=FALSE}
+
+appointments_model_step <- MASS::stepAIC(object = appointments_model, direction = "both",
+                                        trace = 2)
+
+```
+
+   2. Using a boxplot, show the results of the logistic regression model (probabilities between 0-1 on the y-axis) versus the actual no-show value. You can use the following code:
+
+```
+# use the help of ?predict.glm to understand what do you need to put in the type argument
+# (we want the probability of not showing to the appointment).
+
+appointments <- appointments %>%
+   mutate(probability_no_show = predict(XXX,
+                                        newdata = appointments %>% filter(!is_train),
+                                        type = XXX))
+```
+
+```{r separate the outcome and chart by actual result, include = FALSE}
+appointments <- appointments %>%
+  mutate(probability_no_show = predict(appointments_model_step,
+                                     newdata = appointments,
+                                     type = "response"))
+
+ggplot(appointments %>% filter(!is_train), aes(x = no_show, y = probability_no_show)) + 
+  geom_boxplot()
+
+```
+
+   3. With logistic regression we get probabilities, however, very frequently we are actually interested in a classification rule that will help us make a decision (will show up, versus will not show up, double book the appointment or not). For example, such a rule may be that if a probability exceeds 0.2, we classify the patient as a no-show. Add a variable that classifies each patient (show/no-show) according to the model you developed in the previous step.
+
+``` 
+appointments <- appointments %>%
+  mutate(XXX = XXX >= XXX)
+```
+
+```{r predicted no show, include=FALSE}
+appointments <- appointments %>%
+  mutate(predicted_no_show0.2 = probability_no_show >= 0.2)
+```
+
+One of the tools we have at hand is the confusion matrix. A confusion matrix can be used to understand how well are we performing. It shows how frequenctly are we successful or wrong, in each category:
+   
+```
+|Val/Predict|FALSE|TRUE|
+|     FALSE | TN  | FP |
+|     TRUE  | FN  | TP |
+```
+
+Where
+
+   * FP = False Positive = Type-I error
+   * FN = False Negative = Type-II error
+
+Or in other words:
+![error types](Type_IandType_II_errors.jpg)
+Source: [http://www.statisticssolutions.com/to-err-is-human-what-are-type-i-and-ii-errors/](http://www.statisticssolutions.com/to-err-is-human-what-are-type-i-and-ii-errors/)
+
+   4. Build a confusion matrix for the vector you computed earlier, you can use the following code:
+
+```
+# This code will compute a confusion matrix using absolute numbers
+confusion_abs <- appointments %>%
+  filter(!is_train) %>%
+  count(XXX, XXX) %>%
+  spread(predicted_no_show0.2, XXX)
+
+# It is also useful to have it in percentage of row
+confusion_prc <- appointments %>%
+  filter(!is_train) %>%
+  count(XXX, XXX) %>%
+  group_by(no_show) %>%
+  mutate(prop = n/sum(n)) %>%
+  select(-n) %>%
+  spread(predicted_no_show0.2, XXX)
+
+```
+
+What is the type-I error rate? what is the type-II error rate?
+
+```{r compute confusion matrix, include = FALSE}
+
+confusion_abs <- appointments %>%
+  filter(!is_train) %>%
+  count(predicted_no_show0.2, no_show) %>%
+  spread(predicted_no_show0.2, n)
+  
+confusion_prc <- appointments %>%
+  filter(!is_train) %>%
+  count(predicted_no_show0.2, no_show) %>%
+  group_by(no_show) %>%
+  mutate(prop = n/sum(n)) %>%
+  select(-n) %>%
+  spread(predicted_no_show0.2, prop)
+
+# Type-I error is 32.2% and Type-II error is 52.9%
+```
+
+Now try a different more extreme threshold, i.e., 0.1 or 0.9. How does the type-I and type-II errors change?
+
+## Optimization problem
+
+   5. The insurance company is interested to conduct various activities to encourage patients to show up. Some patients will receive a phone call one day prior to the visit. The company is interested to generate a decision rule based on logistic regression results (combined with a proper threshold). The cost of calling a patient is 5 dollars, but the cost of no-show is 25 dollars. You are requested to suggest a proper probability threshold, from which a call will be made (based on the result of your logistic regression model + and the threshold you decide on). You can assume that a patient which receives a phone call will show up (with a probability of $100\%$).
+   
+```
+# first, lets build a function that takes as an argument the threshold, and returns the total cost
+compute_cost <- function(XXX){
+   appointments_cost <- appointments %>%
+      filter(!is_train) %>%
+      mutate(predicted_outcome = probability_no_show >= threshold) %>%
+      mutate(per_record_cost = 
+                5*(predicted_outcome == 1 & no_show == 1) + 
+                25*(XXX == 0 & XXX == XXX)
+                0*(XXX = XXX & XXX == XXX) + 
+                5*(XXX = XXX & XXX = XXX))
+   return(sum(XXX))
+}
+
+# to get the function loaded into the environment just run the code 
+# (ctrl+L when standing on the first line of the function or last line } of the function. 
+# R will then run your code and "compile" the function.)
+
+# Now for the second part, let's create an iteration for different probability thresholds to look for the 
+# minimum cost.
+# BONUS: this helper code is in a base R for loop. Can you also refactor it into a purrr::map_*?
+
+
+# initialize a variable which will contain the cost
+cost <- NULL
+# now compute the cost as a function of varying thresholds
+for (threshold in seq(from = XXX, to = XXX, by = XXX)){
+   cost <- c(cost,
+             compute_cost(XXX))
+}
+
+# now make a tibble containing the cost and the thresholds you used
+cost_benefit <- tibble(threshold = seq(XXX), 
+                       cost = cost)
+
+# plot the cost as a function of threshold. When should the nurse call?
+ggplot(cost_benefit, aes(XXX)) + 
+  geom_point() + geom_line()
+```
+
+```{r function to return confusion, include = FALSE}
+compute_cost <- function(threshold){
+  appointments_tmp <- appointments %>%
+    filter(!is_train) %>%
+    mutate(predicted_outcome = probability_no_show >= threshold) %>%
+    mutate(per_record_cost = 
+             5*(predicted_outcome == 1 & no_show == 1) +
+             25*(predicted_outcome == 0 & no_show == 1) +
+             0*(predicted_outcome == 0 & no_show == 0) +
+             5*(predicted_outcome == 1 & no_show == 0)
+             )
+  
+  return(sum(appointments_tmp$per_record_cost))
+}
+
+cost <- NULL
+for (i in seq(0, 1, 0.01)){
+  cost <- c(cost, compute_cost(i))
+}
+
+cost_benefit <- tibble(cost, threshold = seq(0, 1, 0.01))
+
+ggplot(cost_benefit, aes(x = threshold, y = cost)) + 
+  geom_point() + geom_line()
+
+```
+
+What would you recommend if the no show cost was 50 dollars instead of 25 dollars? what would you recommend if it was 5 dollars?
+
+## ROC
+
+ROC, short for Receiver Operating Characteristic, is a plot which helps us compare classification models. It was develpoed in the second world war when the American army tried to compare methods for recognizing Japanese planes. 
+
+ROC shows the rate of detecting an event (sensitivity, detecting a no-show in our case), versus the specificity (misclassifying a show as a non-show).
+
+In our confusion matrix terminology, that's a True Positive rate on the y-axis versus False Positive rate on the x-axis.
+
+Use the following instructions to generate an ROC for your model:
+
+```
+# first arrange the appointments dataset by the predicted probability vector, in a descending order
+# then, using mutate compute the cumulative sum of real no shows divided by the total number of no shows
+# using another mutate, compute the cumulative sum of show-ups divided by the total number of show-ups
+
+appointments_roc <- appointments %>%
+   arrange(desc(XXX)) %>%
+   mutate(tpr = cumsum(XXX)/sum(XXX)) %>%
+   mutate(fpr = cumsum(!XXX)/sum(!XXX))
+
+# can you explain why this works? hint, think about what your are doing when you are sorting
+# the probability column.
+
+# plot the resulting line
+ggplot(appointments_roc, aes(x = fpr, y = tpr)) + 
+  geom_line() + 
+  xlab("False positive rate (1 - Specificity)") + 
+  ylab("True positive rate (Sensitivity)") + 
+  ggtitle("An ROC for our medical appointment logistic regression model")
+  geom_abline(intercept = 0, slope = 1)
+
+```
+
+```{r hidden code to solve the ROC tibble, include=FALSE}
+
+appointments_roc <- appointments %>%
+  filter(!is_train) %>%
+  arrange(desc(probability_no_show)) %>%
+  mutate(tpr=cumsum(no_show)/sum(no_show),
+         fpr=cumsum(!no_show)/sum(!no_show))
+
+```
+```{r how to draw an ROC, include=TRUE}
+
+ggplot(appointments_roc, aes(x = fpr, y = tpr)) + 
+  geom_line() + 
+  xlab("False positive rate (1 - Specificity)") + 
+  ylab("True positive rate (Sensitivity)") + 
+  scale_x_continuous(labels = scales::percent) + 
+  scale_y_continuous(labels = scales::percent) +
+  ggtitle("An ROC for our medical appointment logistic regression model") +
+  geom_abline(intercept = 0, slope = 1)
+
+```
+```{r add code comparing lm with the logistic, include = FALSE}
+# appointments_lm_model <- lm(formula = 
+#                             no_show ~ Gender + Age + Scholarship + Hipertension + Diabetes +
+#                             Alcoholism + Handcap + SMS_received,
+#                             data = appointments %>% filter(is_train))
+# 
+# appointments_roc_lm <- appointments %>%
+#   mutate(probability_no_show = predict(object = appointments_lm_model, newdata = appointments)) %>%
+#   mutate(probability_no_show = case_when(probability_no_show > 1 ~ 1,
+#                                          probability_no_show < 0 ~ 0,
+#                                          TRUE ~ probability_no_show)) %>%
+#   arrange(desc(probability_no_show)) %>%
+#   mutate(tpr=cumsum(no_show)/sum(no_show),
+#          fpr=cumsum(!no_show)/sum(!no_show))
+# 
+# lm_glm_compare <- appointments_roc %>%
+#   mutate(model = "logistic") %>%
+#   bind_rows(appointments_roc_lm %>%
+#               mutate(model = "linear"))
+# 
+# ggplot(lm_glm_compare, aes(x = fpr, y = tpr, color = model)) +
+#   geom_line() +
+#   xlab("False positive rate (1 - Specificity)") +
+#   ylab("True positive rate (Sensitivity)") +
+#   scale_x_continuous(labels = scales::percent) +
+#   scale_y_continuous(labels = scales::percent) +
+#   ggtitle("An ROC for our medical appointment logistic regression vs. linear model") +
+#   geom_abline(intercept = 0, slope = 1)
+```
+
+What is the meaning of the $y=x$ line on the ROC?
+What would you do if the ROC is completely under the $y=x$ line?
+
+*** 
