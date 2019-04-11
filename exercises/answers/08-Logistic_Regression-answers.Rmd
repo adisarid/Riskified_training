@@ -256,12 +256,17 @@ compute_cost <- function(threshold){
   return(sum(appointments_tmp$per_record_cost))
 }
 
-cost <- NULL
-for (i in seq(0, 1, 0.01)){
-  cost <- c(cost, compute_cost(i))
-}
+# cost <- NULL
+# for (i in seq(0, 1, 0.01)){
+#   cost <- c(cost, compute_cost(i))
+# }
 
-cost_benefit <- tibble(cost, threshold = seq(0, 1, 0.01))
+# cost_benefit <- tibble(cost, threshold = seq(0, 1, 0.01))
+
+cost_benefit <- tibble(threshold = seq(0, 1, 0.01)) %>% 
+  mutate(cost = map_dbl(threshold, compute_cost))
+
+
 
 ggplot(cost_benefit, aes(x = threshold, y = cost)) + 
   geom_point() + geom_line()
