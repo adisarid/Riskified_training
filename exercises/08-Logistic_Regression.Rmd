@@ -114,7 +114,7 @@ appointments <- appointments %>%
   mutate(XXX = XXX >= XXX)
 ```
 
-One of the tools we have at hand is the confusion matrix. A confusion matrix can be used to understand how well are we performing. It shows how frequenctly are we successful or wrong, in each category:
+One of the tools we have at hand is the confusion matrix. A confusion matrix can be used to understand how well are we performing. It shows how frequently are we successful or wrong, in each category:
    
 ```
 |Val/Predict|FALSE|TRUE|

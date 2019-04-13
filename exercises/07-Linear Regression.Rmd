@@ -118,7 +118,9 @@ summary(iris_nonlm)
    * Heteroschedastity
    * Correlations between variables makes you see misleading things
    * Outliers
-   
+
+#### Illustration of the effect of outliers
+
 ```{r illustration of outliers}
 
 iris_setosa_outlier <- iris_setosa %>%

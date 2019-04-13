@@ -1,0 +1,247 @@
+---
+title: "K Nearest Neighbors - KNN"
+author: "Adi Sarid / adi@sarid-ins.co.il"
+output: html_document
+---
+
+We have already talked about classification using logistic regression. In this chapter we deal with K nearest neighbors, a simple algorithm also used for classification (or regression).
+
+In essense, the algorithm works like this: when a new observation appears, search for the "closest" k-existing observations (neighbors), and use a majority vote to classify the new observation.
+
+An example using the iris dataset, three new observations with Sepal.Length and Sepal.Width, we need to classify them into setosa, versicolor, or virginica: 
+
+   * flower a: (5,4)
+   * flower b: (7.5, 3.1)
+   * flower c: (6, 2.8)
+
+```{r iris species, message=FALSE, warning=FALSE}
+library(tidyverse)
+
+iris %>% 
+  count(Species)
+
+new_observations <- tribble(
+  ~Sepal.Length, ~Sepal.Width, ~Species,
+  5, 4, "flower a",
+  7.5, 3.1, "flower b",
+  6, 2.8, "flower c"
+)
+
+ggplot(iris, 
+       aes(x = Sepal.Length, y = Sepal.Width, color = Species)) + geom_point() + 
+  geom_point(data = new_observations, color = "black", size = 5, alpha = 0.7) + 
+  geom_label(inherit.aes = FALSE,
+             data = new_observations, 
+             aes(x = Sepal.Length,
+                 y = Sepal.Width,
+                 label = Species),
+             nudge_x=-0.3, show.legend = FALSE)
+
+```
+
+Intuitively we can classify flower a to setosa, flower b to virginica, and flower c is not that "clear cut". To use KNN, we just need to define the number of neighbors we want the algorithm to use.
+
+The following code shows an example of how to use the KNN algorithm:
+
+```{r show area of iris knn}
+
+# Split iris into train/test randomly
+iris_split <- iris %>%
+  mutate(is_train = runif(nrow(iris)) <= 0.8)
+
+iris_train <- iris_split %>%
+  filter(is_train)
+
+iris_test <- iris_split %>%
+  filter(!is_train)
+
+# fit the KNN according to the train set
+
+iris_knn <- class::knn(train = iris_train %>% select(Sepal.Length, Sepal.Width) %>% as.matrix(), 
+                       test = iris_test %>% select(Sepal.Length, Sepal.Width) %>% as.matrix(), 
+                       cl = iris_train %>% select(Species) %>% as.matrix(),
+                       k = 1)
+
+iris_test %>% 
+  mutate(knn_class = iris_knn) %>%
+  group_by(knn_class, Species) %>%
+  tally() %>%
+  spread(key = Species, value = n, fill = 0)
+
+iris_test %>%
+  mutate(classification_error = iris_knn != Species) %>%
+  group_by(Species) %>%
+  summarize(Species_class_error = mean(classification_error))
+
+```
+
+***
+
+### Quiz
+
+The above computation shows the train set classification error for the species classification. What would be the 1-NN train set error?
+
+***
+
+The following charts show how KNN looks like for $k\in\{1,2,10\}$.
+
+```{r knn iris grid, fig.width=10}
+
+# generate a full grid:
+knn_grid <- expand.grid(Sepal.Length = seq(3, 8, 0.05), Sepal.Width = seq(2, 4.5, 0.05))
+
+# show the result
+head(knn_grid)
+tail(knn_grid)
+
+# Run the knn algorithm. Let's use the entire dataset.
+# k = 1
+iris_knn_1 <- class::knn(train = iris %>% select(Sepal.Length, Sepal.Width) %>% as.matrix(), 
+                         test = knn_grid, 
+                         cl = iris %>% select(Species) %>% as.matrix(),
+                         k = 1)
+# k = 2
+iris_knn_2 <- class::knn(train = iris %>% select(Sepal.Length, Sepal.Width) %>% as.matrix(), 
+                         test = knn_grid, 
+                         cl = iris %>% select(Species) %>% as.matrix(),
+                         k = 2)
+# k = 10
+iris_knn_10 <- class::knn(train = iris %>% select(Sepal.Length, Sepal.Width) %>% as.matrix(), 
+                          test = knn_grid, 
+                          cl = iris %>% select(Species) %>% as.matrix(),
+                          k = 10)
+
+# Now, I'm going to plot the resulting grids
+
+knn_for_chart <- knn_grid %>%
+  bind_cols(tibble(`1nn` = iris_knn_1, `2nn` = iris_knn_2, `10nn` = iris_knn_10)) %>%
+  gather(key = "k", value = "classification", -Sepal.Length, -Sepal.Width) %>%
+  mutate(k = as_factor(k, levels = c("1nn", "2nn", "10nn")))
+
+# to show you the data set I'm using to plot this after the gather operation
+glimpse(knn_for_chart)
+
+# the ggplot command
+ggplot(knn_for_chart, aes(x = Sepal.Length, y = Sepal.Width, fill = classification)) + 
+  geom_raster(alpha = 0.5) + 
+  facet_wrap(~ k) + 
+  geom_point(inherit.aes = F, data = iris, aes(x = Sepal.Length, y = Sepal.Width, fill = Species),
+             color = "black", pch = 21, size = 3) + 
+  theme_bw()
+
+```
+```{r plot knn with aspect ratio 1, include=FALSE, fig.width=8, fig.height=8}
+
+
+# It's all about Euclidean distance. Look what happens when we make the axis symmetric
+ggplot(knn_for_chart, aes(x = Sepal.Length, y = Sepal.Width, fill = classification)) + 
+  geom_tile(alpha = 0.3) + 
+  facet_wrap(~ k) + 
+  geom_point(inherit.aes = F, data = iris, aes(x = Sepal.Length, y = Sepal.Width, fill = Species),
+             color = "black", pch = 21, size = 3) +
+  theme(aspect.ratio=1)
+
+```
+
+## Scaling and centering
+
+One of the tools we sometimes need to employ when using KNN (or other algorithms which are based on distances, such as clustering we previously discussed), is scaling and centering:
+
+   * Think about two variables, one in the range of 0-1 and the second in the range of 0-100. The definition of "neighborhood" will be highly influenced by the scale of the second variable.
+   * Scaling and centering can be used by the `scale` function, just note that it expects a numeric matrix and returns a matrix with attributes. This function works on the distribution (the sd becomes 1 and the mean becomes 0).
+   * A second option is to build your own scaling function, e.g. min-max. This kind of scaling works on the range of the data.
+   
+```{r scaling and centering examples}
+
+x_norm <- rnorm(100, 10, 3)
+x_scaled <- scale(x_norm)
+x_minmax <- (x_norm - min(x_norm))/(max(x_norm)-min(x_norm))
+
+scaling_examples <- tibble(original = x_norm,
+       scale_fun = x_scaled,
+       scale_minmax = x_minmax) %>% 
+  gather(type, value)
+
+ggplot(scaling_examples, aes(value, color = type, fill = type)) + 
+  geom_density(alpha = 0.3)
+
+```
+
+### knn exercise
+
+Load the medical appointments file, and split it to two parts randomely (train 80% / test 20%). Use knn to predict no-show (you can use the command from package `FNN` which is faster). 
+
+   1. What variables do you think you should use?
+   2. What transformation are you doing on the variables?
+   3. What is the $k$ you recommend?
+   4. Compute the type-I (predicted no-show but did show) and type-II errors (predicted show but didn't show).
+
+```{r medical appointment no shows knn analysis, include=FALSE}
+
+# load the knn
+library(FNN)
+
+# Load the file from the csv
+appointments_raw <- read_csv("https://raw.githubusercontent.com/adisarid/Riskified_training/master/datasets/Medical_Appointments_No_Shows_KaggleV2-May-2016.csv")
+appointments <- appointments_raw %>%
+  mutate(is_train = runif(nrow(appointments_raw)) <= 0.8) %>%
+  mutate(schedule_time = lubridate::hour(ScheduledDay)) %>%
+  mutate(same_day_appointment = (abs(ScheduledDay - AppointmentDay) <= 24)*1) %>%
+  mutate(is_male = (Gender == "M")*1) %>%
+  mutate_at(.vars = vars("schedule_time", "Age"), funs((. - min(.))/(max(.)-min(.)))) %>%
+  select(schedule_time, same_day_appointment, is_male,
+         Age, Scholarship:SMS_received, `No-show`, is_train)
+
+create_knn_estimation <- function(vars_to_omit = "null", try_k = 1){
+  test_res <- knn(train = appointments %>% 
+                    filter(is_train) %>%
+                    select(-`No-show`, -is_train) %>%
+                    select(-one_of(vars_to_omit)) %>%
+                    as.matrix(),
+                  test = appointments %>% 
+                    filter(!is_train) %>%
+                    select(-`No-show`, -is_train) %>%
+                    select(-one_of(vars_to_omit)) %>%
+                    as.matrix(),
+                  cl = appointments %>%
+                    filter(is_train) %>%
+                    select(`No-show`) %>%
+                    as.matrix(),
+                  k = try_k)
+
+  # Check for classification errors
+  confusion <- tibble(knn_result = as.character(test_res), 
+                      real_result = appointments$`No-show`[!appointments$is_train]) %>%
+    group_by(real_result) %>%
+    count(knn_result) %>%
+    mutate(prop = n/sum(n)) %>%
+    select(-n) %>%
+    spread(key = knn_result, value = prop)
+  
+  return(confusion)
+
+} 
+
+confuse1 <- create_knn_estimation()
+confuse2 <- create_knn_estimation(try_k = 3)
+confuse3 <- create_knn_estimation(try_k = 7)
+confuse4 <- create_knn_estimation(try_k = 1, vars_to_omit = "Age")
+confuse5 <- create_knn_estimation(try_k = 1, vars_to_omit = c("Age", "same_day_appointment"))
+confuse6 <- create_knn_estimation(try_k = 1, vars_to_omit = c("same_day_appointment"))
+confuse7 <- create_knn_estimation(try_k = 1, vars_to_omit = c("Age", "is_male"))
+
+confuse1
+confuse2
+confuse3
+confuse4
+confuse5
+confuse6
+confuse7
+
+```
+
+## Some problems with KNN
+
+The computation is inefficient - you need to calculate distance of a new observation from a lot of other points to find its closest neighbors.
+
+Not much statistics can be deduced (e.g. in terms of significance or hypothesis testing).
