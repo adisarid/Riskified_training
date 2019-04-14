@@ -134,7 +134,7 @@ In this exercise we will use decision trees to predict the probability for churn
    5. Split the data to train/test and use the CP you got to fit a tree. Plot an ROC based on the train data and the tree you got. 
    6. Fit a logistic regression model to predict churn and compare it to the tree you got (plot both of them on the ROC). Which model has a better performance?
 
-```
+```{r churn using rpart, include = FALSE}
 
 # q1
 telco_churn <- read_csv("https://github.com/adisarid/Riskified_training/raw/master/datasets/WA_Fn-UseC_-Telco-Customer-Churn.csv") %>%
@@ -143,11 +143,11 @@ telco_churn <- read_csv("https://github.com/adisarid/Riskified_training/raw/mast
 # q2
 telco_churn_tree <- rpart(data = telco_churn,
                           formula = Churn ~ .,
-                          control = rpart.control(cp = XXX))
+                          control = rpart.control(cp = 0.001))
 # q2+q3
 library(rpart.plot)
 prp(telco_churn_tree)
-telco_churn_short <- prune(telco_churn_tree, cp = XXX)
+telco_churn_short <- prune(telco_churn_tree, cp = 0.01)
 prp(telco_churn_short)
 
 # q4
@@ -160,11 +160,11 @@ telco_churn <- telco_churn %>%
 
 telco_churn_tree_train <- rpart(data = telco_churn %>% filter(is_train),
                                 formula = Churn ~ . - is_train,
-                                control = rpart.control(cp = XXX))
+                                control = rpart.control(cp = 0.01))
 
 telco_churn_deeptree_train <- rpart(data = telco_churn %>% filter(is_train),
                                 formula = Churn ~ . - is_train,
-                                control = rpart.control(cp = XXX))
+                                control = rpart.control(cp = 0.000001))
 
 # Competitive model using logistic regression
 telco_churn_glm_train <- glm(formula = (Churn=="Yes") ~ . - is_train,
@@ -173,11 +173,11 @@ telco_churn_glm_train <- glm(formula = (Churn=="Yes") ~ . - is_train,
 
 telco_churn_roc <- telco_churn %>%
   mutate(probability_churn_tree = predict(telco_churn_tree_train, newdata = telco_churn)[, "Yes"]) %>%
-  arrange(desc(XXX)) %>%
+  arrange(desc(probability_churn_tree)) %>%
   filter(!is_train) %>%
   mutate(churn_numeric = Churn == "Yes") %>%
-  mutate(tpr=XXX,
-         fpr=XXX) %>%
+  mutate(tpr=cumsum(churn_numeric)/sum(churn_numeric),
+         fpr=cumsum(!churn_numeric)/sum(!churn_numeric)) %>%
   mutate(model = "tree_cp0.01")
 
 telco_churn_roc_deep <- telco_churn %>%
@@ -205,7 +205,7 @@ roc_prep <- telco_churn_roc %>%
             telco_churn_roc_glm)
   
 
-ggplot(roc_prep, aes(x = XXX, y = XXX, color = model)) + 
+ggplot(roc_prep, aes(x = fpr, y = tpr, color = model)) + 
   geom_line() + 
   xlab("False positive rate (1 - Specificity)") + 
   ylab("True positive rate (Sensitivity)") + 
@@ -234,7 +234,6 @@ Many algorithms build upon decision trees. These algorithms are more robust and 
    * Bagging
    * Boosting
 
-
 ## randomForests
 
 The random forest algorithm builds an assortment of many trees, but at each split, the number of splitting variables from which the tree building algorithm chooses is limited to $m$ out of possible $p$ (usually $m\approx \sqrt{p}$).
@@ -246,6 +245,7 @@ This method can minimize the effects of local minimum caused by the greedy appro
 The eventual outcome is the prediction average over all trees.
 
 In addition, we can also compute the average contibution of each variable (the decrease in Gini's impurity, that each new variable brings).
+
 
 ```{r diamond random forest}
 
@@ -276,7 +276,7 @@ getTree(diamond_price_forest, k = 1)
       a. Note that when you use the function `predict` you must define the parameter `type` in a specific way. How?
    4. Build an importance plot using `varImpPlot`. What parameters are most important to predict churn?
    5. Would you consider giving a discount to reduce churn? What % of monthlyCharges would you consider as a discount (if any)?
-
+   
 ```
 # some help: 
 # first if you try to replicate the code from the diamond's example, you will get an error.
