@@ -36,7 +36,7 @@ The following expression will always be in $[0, 1]$:
 
 The expression in the power of $e$ is linear and very similar to what we used in linear regression.
 
-## Odds ration
+## Odds ratio
 
 Another important term is odds ratio. In sport gambles it is widely common to see the ratio of winning against losing ("this hourse is a bet of 10 to 1"), in our formulation this becomes:
 
@@ -92,9 +92,9 @@ As in the linear regression, we also get a statistical test for the hypothesis t
 
 ## Exercise
 
-The function `MASS:stepAIC` uses a "step-wise" algorithm to search for model improvements. In each step it tries to remove (or add) variables, and reach a better model.
+The function `MASS::stepAIC` uses a "step-wise" algorithm to search for model improvements. In each step it tries to remove (or add) variables, and reach a better model.
 
-   1. Try to improve the previous model by adding or removing variables, you can use `MASS:stepAIC`.
+   1. Try to improve the previous model by adding or removing variables, you can use `MASS::stepAIC`.
    2. Using a boxplot, show the results of the logistic regression model (probabilities between 0-1 on the y-axis) versus the actual no-show value. You can use the following code:
 
 ```
