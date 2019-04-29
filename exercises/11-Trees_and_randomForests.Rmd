@@ -297,8 +297,8 @@ getTree(diamond_price_forest, k = 1)
 # It goes like this:
 
 telco_churn <- telco_churn %>%
-   mutate_if(.predicate = funs(typeof(.)=="character"), 
-             .funs = funs(as.factor(.)))
+   mutate_if(.predicate = is.character, 
+             .funs = as.factor)
 
 # What does it do?
 # it's like looping
@@ -308,12 +308,6 @@ telco_churn <- telco_churn %>%
 #    }
 # }
 
-# the syntax of 
-# typeof(.) == "character"
-# is like "replace . with the vector you are currently checking"
-# the syntax of as.factor(.) is like
-# "replace . with the vector" that is a character and you need to type case into a factor
-# the funs() function makes the expression explicit after replacing the . with the current vector
-
 # now you can continue the exercise...
+```
 ```

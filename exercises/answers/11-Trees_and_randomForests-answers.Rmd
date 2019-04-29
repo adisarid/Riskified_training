@@ -297,8 +297,8 @@ getTree(diamond_price_forest, k = 1)
 # It goes like this:
 
 telco_churn <- telco_churn %>%
-   mutate_if(.predicate = funs(typeof(.)=="character"), 
-             .funs = funs(as.factor(.)))
+   mutate_if(.predicate = is.character, 
+             .funs = as.factor)
 
 # What does it do?
 # it's like looping
@@ -308,13 +308,6 @@ telco_churn <- telco_churn %>%
 #    }
 # }
 
-# the syntax of 
-# typeof(.) == "character"
-# is like "replace . with the vector you are currently checking"
-# the syntax of as.factor(.) is like
-# "replace . with the vector" that is a character and you need to type case into a factor
-# the funs() function makes the expression explicit after replacing the . with the current vector
-
 # now you can continue the exercise...
 ```
    
@@ -323,7 +316,7 @@ library(randomForest)
 
 # the randomForest needs preprocessing of characters into factors
 telco_churn <- telco_churn %>%
-  mutate_if(.predicate = funs(typeof(.) == "character") , funs(as.factor(.)))
+  mutate_if(.predicate = is.character , as.factor)
 
 # now build the forest, might take a while
 churn_forest <- randomForest(formula = factor(Churn) ~ . - is_train,
@@ -416,7 +409,7 @@ calculate_predicted_rev <- function(discount_rate = 0.15, discount_quantile = 0.
 # now, create a grid with the function running on different combinations
 # I'm going to use pmap to generate the results via functional programming,
 # but this can also be accomplished by looping over lines of tibble
-discount_options <- as.tibble(
+discount_options <- as_tibble(
   expand.grid(discount_rate = seq(0, 0.2, 0.025), 
               discount_quantile = seq(0.5, 0.95, 0.05))) %>%
   mutate(rev = map2_dbl(discount_rate, discount_quantile, `calculate_predicted_rev`))
@@ -428,7 +421,7 @@ ggplot(discount_options, aes(x = discount_rate, y = discount_quantile, fill = re
   
 ```
 
-## גישת ה-Boosting
+## Boosting
 
 ביערות אקראיים ראינו כיצד חזאי בודד (עץ) משתכפל והופך לשילוב של הרבה חזאים. כאשר מבוצע שילוב של חזאים רבים הדבר מהווה פוטנציאל להפחית שגיאות שעשויות להופיע באופן מקומי בחזאים אשר נתונים פעמים רבות ל"גחמות הסטטיסטיקה" (או שגיאות הנובעות ממינימום מקומי או מהתאמת יתר).
 
